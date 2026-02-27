@@ -259,7 +259,7 @@ function Profile() {
                         <div className="profile-header text-center">
                             <div className="position-relative d-inline-block">
                                 <img 
-                                    src={imagePreview && imagePreview.startsWith('http') ? imagePreview : (imagePreview ? `https://udemy-latest-backend.onrender.com${imagePreview}` : "http://localhost:5173/src/assets/images/admin-usr.png")} 
+                                    src={imagePreview && imagePreview.startsWith('http') ? imagePreview : (imagePreview ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${imagePreview}` : "http://localhost:5173/src/assets/images/admin-usr.png")} 
                                     alt="Profile" 
                                     className="rounded-circle"
                                     style={{ width: '120px', height: '120px', objectFit: 'cover' }}

@@ -56,7 +56,7 @@ function LiveChat() {
   useEffect(() => {
     // Initialize socket only once
     if (!socketRef.current) {
-      socketRef.current = io("https://udemy-latest-backend.onrender.com");
+      socketRef.current = io(import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com');
       console.log('🔌 Socket initialized');
     }
     

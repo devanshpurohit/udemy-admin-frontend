@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { getStudentById, updateStudentStatus } from "../../services/studentService";
+import { uploadProfileImage, refetchUser } from "../../services/profileService";
 
 function StudentProfile() {
     const { id } = useParams();
@@ -54,10 +55,10 @@ function StudentProfile() {
             formData.append('profileImage', file);
             
             console.log('Uploading file:', file.name);
-            console.log('Upload URL:', `https://udemy-latest-backend.onrender.com/api/students/${id}/profile-image`);
+            console.log('Upload URL:', `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}/api/students/${id}/profile-image`);
             
             // Upload to backend
-            const response = await fetch(`https://udemy-latest-backend.onrender.com/api/students/${id}/profile-image`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}/api/students/${id}/profile-image`, {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -135,7 +136,7 @@ function StudentProfile() {
         if (student?.profile?.profileImage) {
             const imageUrl = student.profile.profileImage.startsWith('http') 
                 ? student.profile.profileImage 
-                : `https://udemy-latest-backend.onrender.com${student.profile.profileImage}`;
+                : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${student.profile.profileImage}`;
             
             console.log('Student image URL:', imageUrl);
             return imageUrl;

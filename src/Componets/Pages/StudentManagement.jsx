@@ -101,7 +101,7 @@ function StudentManagement() {
         if (student.profile?.profileImage) {
             return student.profile.profileImage.startsWith('http') 
                 ? student.profile.profileImage 
-                : `https://udemy-latest-backend.onrender.com${student.profile.profileImage}`;
+                : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${student.profile.profileImage}`;
         }
         return "http://localhost:5173/src/assets/images/admin-usr.png";
     };

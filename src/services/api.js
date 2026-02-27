@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'https://udemy-latest-backend.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://udemy-latest-backend-1.onrender.com/api',
   timeout: 30000,  // Increased from 10000 to 30000
   headers: {
     'Content-Type': 'application/json',
