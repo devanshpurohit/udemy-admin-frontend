@@ -3,6 +3,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { login } from '../../services/authService'
+// Add import
+import authImage from '../assets/images/auth-image.png';
+
+
 
 function Login() {
     const [formData, setFormData] = useState({
@@ -103,7 +107,7 @@ function Login() {
                     <div className="row">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
-                                <img src="/src/assets/images/auth-image.png" alt="Login" />
+                                <img src={authImage} alt="Login" />
                             </div>
                         </div>
 

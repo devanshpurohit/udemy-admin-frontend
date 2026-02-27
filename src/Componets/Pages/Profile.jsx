@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getStoredUser, updateProfile } from '../../services/authService';
 import { uploadProfileImage, refetchUser } from '../../services/profileService';
 import { getCourses } from '../../services/courseService';
+import adminUsr from '../assets/images/admin-usr.png';
 import { 
   FaUser,
   FaEnvelope,
@@ -259,13 +260,13 @@ function Profile() {
                         <div className="profile-header text-center">
                             <div className="position-relative d-inline-block">
                                 <img 
-                                    src={imagePreview && imagePreview.startsWith('http') ? imagePreview : (imagePreview ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${imagePreview}` : "http://localhost:5173/src/assets/images/admin-usr.png")} 
+                                    src={imagePreview && imagePreview.startsWith('http') ? imagePreview : (imagePreview ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${imagePreview}` : adminUsr)} 
                                     alt="Profile" 
                                     className="rounded-circle"
                                     style={{ width: '120px', height: '120px', objectFit: 'cover' }}
                                     onError={(e) => {
                                         console.log('Profile - Image load error, trying fallback:', e.target.src);
-                                        e.target.src = "http://localhost:5173/src/assets/images/admin-usr.png";
+                                        e.target.src = adminUsr;
                                     }}
                                     onLoad={(e) => {
                                         console.log('Profile - Image loaded successfully:', e.target.src);

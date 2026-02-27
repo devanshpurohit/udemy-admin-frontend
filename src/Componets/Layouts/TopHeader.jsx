@@ -5,6 +5,7 @@ import { IoIosNotifications } from "react-icons/io";
 import { IoBook } from "react-icons/io5";
 import { getStoredUser, logout } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
+import adminUsr from '../assets/images/admin-usr.png';
 
 
 function TopHeader() {
@@ -177,7 +178,7 @@ function TopHeader() {
                                 aria-expanded="false"
                             >
                                 <div className="admn-icon me-2">
-                                    <img src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")} alt="" />
+                                    <img src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${user?.profile?.profileImage}` : adminUsr)} alt="" />
                                 </div>
                             </a>
 
@@ -188,7 +189,7 @@ function TopHeader() {
                                 <div className="profile-card-box">
                                     <div className="profile-top-section">
                                         <img
-                                            src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")}
+                                            src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${user?.profile?.profileImage}` : adminUsr)}
                                             alt="Profile"
                                             className="profile-image"
                                         />

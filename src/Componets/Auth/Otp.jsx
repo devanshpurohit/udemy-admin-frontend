@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import authImage from '../assets/images/auth-image.png';
 
 function Otp() {
     return (
@@ -8,7 +9,7 @@ function Otp() {
                     <div className="row">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
-                                <img src="/src/assets/images/auth-image.png" alt="OTP" />
+                                <img src={authImage} alt="OTP" />
                             </div>
                         </div>
 

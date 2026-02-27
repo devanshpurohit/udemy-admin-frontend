@@ -1,6 +1,10 @@
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink } from 'react-router-dom'
+// Add import
+import authImage from '../assets/images/auth-image.png';
+
+
 
 function ForgotPassword() {
     return (
@@ -10,7 +14,7 @@ function ForgotPassword() {
                     <div className="row">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
-                                <img src="/src/assets/images/auth-image.png" alt="Forgot Password" />
+                                <img src={authImage} alt="forgot Password" />
                             </div>
                         </div>
 

@@ -6,6 +6,7 @@ import { faEye } from "@fortawesome/free-solid-svg-icons";
 
 import { getStoredUser, updateProfile, changePassword } from "../../services/authService";
 import { uploadProfileImage, refetchUser } from "../../services/profileService";
+import adminUsr from '../assets/images/admin-usr.png';
 
 function Settings() {
   const [user, setUser] = useState(null);
@@ -38,7 +39,7 @@ function Settings() {
         bio: u.profile?.bio || ""
       });
 
-      setPreview(u.profile?.profileImage && u.profile?.profileImage.startsWith('http') ? u.profile?.profileImage : (u.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${u.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png"));
+      setPreview(u.profile?.profileImage && u.profile?.profileImage.startsWith('http') ? u.profile?.profileImage : (u.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${u.profile?.profileImage}` : adminUsr));
     }
   }, []);
 
@@ -58,7 +59,7 @@ function Settings() {
           });
           
           if (userData.profile?.profileImage) {
-            const imageUrl = userData.profile?.profileImage.startsWith('http') ? userData.profile.profileImage : (userData.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${userData.profile.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png");
+            const imageUrl = userData.profile?.profileImage.startsWith('http') ? userData.profile.profileImage : (userData.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${userData.profile.profileImage}` : adminUsr);
             console.log('Settings - Setting preview from storage change:', imageUrl);
             setPreview(imageUrl);
           }
@@ -122,7 +123,7 @@ function Settings() {
         
         // Update preview with new image
         if (updatedUser.profile?.profileImage) {
-          const imageUrl = updatedUser.profile?.profileImage.startsWith('http') ? updatedUser.profile?.profileImage : (updatedUser.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${updatedUser.profile.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png");
+          const imageUrl = updatedUser.profile?.profileImage.startsWith('http') ? updatedUser.profile?.profileImage : (updatedUser.profile?.profileImage ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${updatedUser.profile.profileImage}` : adminUsr);
           console.log('Settings - Setting preview from updated user:', imageUrl);
           setPreview(imageUrl);
         }
