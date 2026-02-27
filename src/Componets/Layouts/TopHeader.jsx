@@ -5,7 +5,7 @@ import { IoIosNotifications } from "react-icons/io";
 import { IoBook } from "react-icons/io5";
 import { getStoredUser, logout } from "../../services/authService";
 import { useNavigate } from "react-router-dom";
-import adminUsr from '../assets/images/admin-usr.png';
+import adminUsr from '../../assets/images/admin-usr.png';
 
 
 function TopHeader() {

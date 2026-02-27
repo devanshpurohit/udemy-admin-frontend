@@ -1,8 +1,7 @@
 import { faEye } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink } from 'react-router-dom'
-// Add import
-import authImage from '../assets/images/auth-image.png';
+import authImage from '../../assets/images/auth-image.png';
 
 function SetPassword() {
     return (

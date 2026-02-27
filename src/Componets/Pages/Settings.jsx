@@ -6,7 +6,7 @@ import { faEye } from "@fortawesome/free-solid-svg-icons";
 
 import { getStoredUser, updateProfile, changePassword } from "../../services/authService";
 import { uploadProfileImage, refetchUser } from "../../services/profileService";
-import adminUsr from '../assets/images/admin-usr.png';
+import adminUsr from '../../assets/images/admin-usr.png';
 
 function Settings() {
   const [user, setUser] = useState(null);

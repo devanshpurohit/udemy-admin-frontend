@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import authImage from '../assets/images/auth-image.png';
+import authImage from '../../assets/images/auth-image.png';
 
 function Otp() {
     return (

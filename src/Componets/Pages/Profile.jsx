@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getStoredUser, updateProfile } from '../../services/authService';
 import { uploadProfileImage, refetchUser } from '../../services/profileService';
 import { getCourses } from '../../services/courseService';
-import adminUsr from '../assets/images/admin-usr.png';
+import adminUsr from '../../assets/images/admin-usr.png';
 import { 
   FaUser,
   FaEnvelope,
