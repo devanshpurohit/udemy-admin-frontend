@@ -54,6 +54,10 @@ function Profile() {
             
             // Fetch user's courses count
             fetchUserCoursesCount(userData.id || userData._id);
+        } else {
+            // Redirect to login if no user
+            console.log('Profile - No user found, redirecting to login');
+            window.location.href = '/login';
         }
         setLoading(false);
     }, []);
