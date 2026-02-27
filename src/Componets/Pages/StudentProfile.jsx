@@ -54,10 +54,10 @@ function StudentProfile() {
             formData.append('profileImage', file);
             
             console.log('Uploading file:', file.name);
-            console.log('Upload URL:', `http://localhost:5002/api/students/${id}/profile-image`);
+            console.log('Upload URL:', `https://udemy-latest-backend.onrender.com/api/students/${id}/profile-image`);
             
             // Upload to backend
-            const response = await fetch(`http://localhost:5002/api/students/${id}/profile-image`, {
+            const response = await fetch(`https://udemy-latest-backend.onrender.com/api/students/${id}/profile-image`, {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -135,7 +135,7 @@ function StudentProfile() {
         if (student?.profile?.profileImage) {
             const imageUrl = student.profile.profileImage.startsWith('http') 
                 ? student.profile.profileImage 
-                : `http://localhost:5002${student.profile.profileImage}`;
+                : `https://udemy-latest-backend.onrender.com${student.profile.profileImage}`;
             
             console.log('Student image URL:', imageUrl);
             return imageUrl;

@@ -56,7 +56,7 @@ function LiveChat() {
   useEffect(() => {
     // Initialize socket only once
     if (!socketRef.current) {
-      socketRef.current = io("http://localhost:5002");
+      socketRef.current = io("https://udemy-latest-backend.onrender.com");
       console.log('🔌 Socket initialized');
     }
     

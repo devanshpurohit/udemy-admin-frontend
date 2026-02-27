@@ -177,7 +177,7 @@ function TopHeader() {
                                 aria-expanded="false"
                             >
                                 <div className="admn-icon me-2">
-                                    <img src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `http://localhost:5002${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")} alt="" />
+                                    <img src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `https://udemy-latest-backend.onrender.com${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")} alt="" />
                                 </div>
                             </a>
 
@@ -188,7 +188,7 @@ function TopHeader() {
                                 <div className="profile-card-box">
                                     <div className="profile-top-section">
                                         <img
-                                            src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `http://localhost:5002${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")}
+                                            src={user?.profile?.profileImage && user?.profile?.profileImage.startsWith('http') ? user?.profile?.profileImage : (user?.profile?.profileImage ? `https://udemy-latest-backend.onrender.com${user?.profile?.profileImage}` : "http://localhost:5173/src/assets/images/admin-usr.png")}
                                             alt="Profile"
                                             className="profile-image"
                                         />
