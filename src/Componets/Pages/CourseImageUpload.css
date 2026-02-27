@@ -1,0 +1,61 @@
+/* Course Image Upload Styles */
+.image-upload-container {
+    position: relative;
+    width: 100%;
+}
+
+.image-upload-label {
+    display: block;
+    width: 100%;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.image-upload-label:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.image-preview {
+    border: 2px solid #ddd;
+    border-radius: 8px;
+}
+
+.upload-placeholder {
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.upload-placeholder i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #007bff;
+}
+
+.upload-placeholder p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+    color: white;
+}
