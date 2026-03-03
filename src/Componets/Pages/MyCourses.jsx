@@ -84,7 +84,25 @@ function MyCourses() {
                 }
             } catch (error) {
                 console.error('Error deleting course:', error);
-                alert('Error deleting course: ' + error.message);
+                console.error('Error type:', typeof error);
+                console.error('Error response:', error.response);
+                console.error('Error data:', error.response?.data);
+                console.error('Error message:', error.message);
+                
+                // Better error handling
+                let errorMessage = 'Unknown error occurred';
+                
+                if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                } else if (typeof error === 'string') {
+                    errorMessage = error;
+                } else if (error && typeof error === 'object') {
+                    errorMessage = JSON.stringify(error);
+                }
+                
+                alert('Error deleting course: ' + errorMessage);
             }
         }
     };

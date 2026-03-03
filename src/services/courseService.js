@@ -30,9 +30,12 @@ export const getCourseDraft = async (id) => {
 
 export const saveCourseContent = async (id, contentData) => {
   try {
+    console.log('🔍 Saving course content:', contentData);
     const response = await api.put(`/courses/wizard/content/${id}`, contentData);
+    console.log('🔍 Save course content response:', response);
     return response;
   } catch (error) {
+    console.error('❌ Save course content error:', error);
     throw error;
   }
 };
@@ -117,10 +120,15 @@ export const updateCourse = async (id, courseData) => {
 export const deleteCourse = async (id) => {
   try {
     console.log('Making DELETE request to:', `/courses/${id}`);
+    console.log('API base URL:', api.defaults.baseURL);
     const response = await api.delete(`/courses/${id}`);
     console.log('DELETE response:', response);
     return response;
   } catch (error) {
+    console.error('Delete course service error:', error);
+    console.error('Error response:', error.response);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
     throw error;
   }
 };
