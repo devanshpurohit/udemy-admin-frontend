@@ -3,7 +3,7 @@ import api from './api';
 // Get all statements with optional filters
 export const getStatements = async (params = {}) => {
   try {
-    return await api.get('/statements', { params }); 
+    return await api.get('/admin/statements', { params }); 
   } catch (error) {
     throw error;
   }

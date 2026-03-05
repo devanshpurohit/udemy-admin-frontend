@@ -23,21 +23,23 @@ function Statements() {
             setLoading(true);
             setError(null);
             
-            const params = {
-                page: currentPage,
-                limit: 20,
-                search: searchTerm,
-                paymentMethod: paymentMethod !== 'all' ? paymentMethod : undefined,
-                status: status !== 'all' ? status : undefined
-            };
-            
-            const response = await getStatements(params);
-            
-            if (response.success) {
-                setStatements(response.data.statements || []);
-                setTotalPages(response.data.totalPages || 1);
+            const token = localStorage.getItem("token");
+
+            const res = await fetch(
+                `http://localhost:5002/api/admin/statements`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}` 
+                    }
+                }
+            );
+
+            const data = await res.json();
+
+            if (data.success) {
+                setStatements(data.data || []);
             } else {
-                setError(response.message || 'Failed to fetch statements');
+                setError(data.message || 'Failed to fetch statements');
             }
         } catch (error) {
             console.error('Error fetching statements:', error);
@@ -45,7 +47,7 @@ function Statements() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, searchTerm, paymentMethod, status]);
+    }, []);
 
     // Debounced search
     const handleSearch = useCallback((value) => {
@@ -312,11 +314,12 @@ function Statements() {
                                     <thead>
                                         <tr>
                                             <th>S.No</th>
-                                            <th>Order Id </th>
-                                            <th>Course</th>
+                                            <th>Order ID</th>
+                                            <th>User Name</th>
+                                            <th>Course Name</th>
                                             <th>Amount</th>
-                                            <th>Payment Method</th>
-                                            <th>Status</th>
+                                            <th>Payment Status</th>
+                                            <th>Date</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
@@ -344,37 +347,13 @@ function Statements() {
                                         ) : (
                                             statements.map((statement, index) => (
                                                 <tr key={statement._id}>
-                                                    <td>{(currentPage - 1) * 20 + index + 1}</td>
-                                                    <td>#{statement.orderId || 'ORD' + String(statement._id).slice(-6)}</td>
-                                                    <td>
-                                                        <div className="admin-table-bx">
-                                                            <div className="admin-table-sub-bx">
-                                                                <img 
-                                                                    src={statement.course?.courseImage || statement.course?.thumbnail || "/pic_01.jpg"} 
-                                                                    alt={statement.course?.title || "Course"} 
-                                                                />
-                                                                <div className="admin-table-sub-details doctor-title">
-                                                                    <h6>{statement.course?.title || 'Course Title'}</h6>
-                                                                   <p>
-  {statement.course?.level || 'Unknown'} - 
-  {statement.course?.lessons?.length || 0} lessons
-</p>
-
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>${statement.amount || 0}</td>
-                                                    <td>{statement.paymentMethod || 'N/A'}</td>
-                                                    <td>
-                                                        <span className={`${
-                                                            statement.status === 'Paid' ? 'public-title' : 
-                                                            statement.status === 'Pending' ? 'pending-title' : 
-                                                            'public-title'
-                                                        }`}>
-                                                            {statement.status || 'Unknown'}
-                                                        </span>
-                                                    </td>
+                                                    <td>{index + 1}</td>
+                                                    <td>{statement.orderId}</td>
+                                                    <td>{statement.student?.username || statement.user?.username}</td>
+                                                    <td>{statement.course?.title}</td>
+                                                    <td>₹{statement.amount}</td>
+                                                    <td>{statement.status}</td>
+                                                    <td>{new Date(statement.createdAt).toLocaleDateString()}</td>
                                                     <td>
                                                         <div>
                                                             <button 
