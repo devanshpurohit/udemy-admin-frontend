@@ -26,7 +26,7 @@ function Statements() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                `http://localhost:5002/api/admin/statements`,
+                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/admin/statements`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}` 

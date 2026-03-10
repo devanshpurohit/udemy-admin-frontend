@@ -67,7 +67,7 @@ function CourseContent() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5002/api/courses/${courseId}/sections`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ function CourseContent() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5002/api/courses/${courseId}/sections/${selectedSection}/lessons`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ function CourseContent() {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5002/api/courses/${courseId}/sections/${selectedSection}/lessons/${selectedLesson}/quiz`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons/${selectedLesson}/quiz`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
