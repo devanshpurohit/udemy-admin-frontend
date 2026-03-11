@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { getStoredUser, updateProfile } from '../../services/authService';
 import { uploadProfileImage, refetchUser } from '../../services/profileService';
 import { getCourses } from '../../services/courseService';
@@ -122,13 +123,13 @@ function Profile() {
         if (file) {
             // Check file type
             if (!file.type.startsWith('image/')) {
-                alert('Please select an image file');
+                toast.error('Please select an image file');
                 return;
             }
             
             // Check file size (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                alert('Image size should be less than 5MB');
+                toast.error('Image size should be less than 5MB');
                 return;
             }
 
@@ -188,24 +189,24 @@ function Profile() {
                         }
                         
                         setProfileImage(null);
-                        alert('Profile image uploaded successfully!');
+                        toast.success('Profile image uploaded successfully!');
                     } else {
                         console.log('Profile - Refetch failed, but using response data:', refetchResponse);
                         // Even if refetch fails, we have the response data
-                        alert('Profile image uploaded successfully! (Using response data)');
+                        toast.success('Profile image uploaded successfully! (Using response data)');
                     }
                 } catch (refetchError) {
                     console.log('Profile - Refetch error, but using response data:', refetchError);
                     // Even if refetch fails, we have the response data
-                    alert('Profile image uploaded successfully! (Using response data)');
+                    toast.success('Profile image uploaded successfully! (Using response data)');
                 }
             } else {
                 console.log('Profile - Upload failed:', response);
-                alert('Failed to upload profile image: ' + (response.message || 'Unknown error'));
+                toast.error('Failed to upload profile image: ' + (response.message || 'Unknown error'));
             }
         } catch (error) {
             console.error('Image upload error:', error);
-            alert('Error uploading profile image: ' + error.message);
+            toast.error('Error uploading profile image: ' + error.message);
         } finally {
             setUploading(false);
         }
@@ -239,16 +240,16 @@ function Profile() {
                     });
                     
                     setIsEditing(false);
-                    alert('Profile updated successfully!');
+                    toast.success('Profile updated successfully!');
                 } else {
-                    alert('Failed to re-fetch user data: ' + (refetchResponse.message || 'Unknown error'));
+                    toast.error('Failed to re-fetch user data: ' + (refetchResponse.message || 'Unknown error'));
                 }
             } else {
-                alert('Failed to update profile: ' + (response.message || 'Unknown error'));
+                toast.error('Failed to update profile: ' + (response.message || 'Unknown error'));
             }
         } catch (error) {
             console.error('Profile update error:', error);
-            alert('Error updating profile: ' + error.message);
+            toast.error('Error updating profile: ' + error.message);
         }
     };
 

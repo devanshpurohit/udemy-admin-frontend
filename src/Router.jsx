@@ -21,6 +21,7 @@ import Settings from './Componets/Pages/Settings';
 import StudentProfile from './Componets/Pages/StudentProfile';
 import Profile from './Componets/Pages/Profile';
 import LiveChat from "./Componets/Pages/AIChat";
+import AICardGenerator from './Componets/Pages/AICardGenerator';
 import Login from './Componets/Auth/Login';
 import ForgotPassword from './Componets/Auth/ForgotPassword';
 import Otp from './Componets/Auth/Otp';
@@ -135,6 +136,10 @@ const router = createBrowserRouter([
       {
         path: "/student-profile/:id",
         element: <StudentProfile />,
+      },
+      {
+        path: "/ai-card-generator",
+        element: <AICardGenerator />,
       },
     ],
   },

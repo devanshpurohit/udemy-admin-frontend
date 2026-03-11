@@ -2,6 +2,7 @@ import { faEye, faUser } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import { login } from '../../services/authService'
 import authImage from '../../assets/images/auth-image.png';
 
@@ -64,8 +65,8 @@ function Login() {
                     }
                     
                     console.log('✅ Admin access granted, navigating to dashboard...');
-                    // Show success alert
-                    alert('✅ ADMIN LOGIN SUCCESSFUL! Navigating to dashboard...');
+                    // Show success toast
+                    toast.success('✅ ADMIN LOGIN SUCCESSFUL! Navigating to dashboard...');
                     // Use setTimeout to see logs before navigation
                     setTimeout(() => {
                         navigate('/dashboard');

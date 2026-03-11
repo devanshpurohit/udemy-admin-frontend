@@ -6,6 +6,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { getCoupons, createCoupon, deleteCoupon, updateCoupon } from "../../services/couponService";
 
 // Add cache-busting timestamp
@@ -70,18 +71,18 @@ function Coupon() {
                 const response = await updateCoupon(editingCoupon._id, formData);
                 console.log('📥 Update response:', response);
                 if (response.success) {
-                    alert('Coupon updated successfully');
+                    toast.success('Coupon updated successfully');
                 } else {
-                    alert('Failed to update coupon: ' + response.message);
+                    toast.error('Failed to update coupon: ' + response.message);
                 }
             } else {
                 console.log('➕ Creating new coupon with data:', formData);
                 const response = await createCoupon(formData);
                 console.log('📥 Create response:', response);
                 if (response.success) {
-                    alert('Coupon created successfully');
+                    toast.success('Coupon created successfully');
                 } else {
-                    alert('Failed to create coupon: ' + response.message);
+                    toast.error('Failed to create coupon: ' + response.message);
                 }
             }
             
@@ -92,7 +93,7 @@ function Coupon() {
             fetchCoupons(); // Refresh list
         } catch (err) {
             console.error('❌ Submit error:', err);
-            alert('Error saving coupon');
+            toast.error('Error saving coupon');
         }
     };
 
@@ -102,14 +103,14 @@ function Coupon() {
             try {
                 const response = await deleteCoupon(id);
                 if (response.success) {
-                    alert('Coupon deleted successfully');
+                    toast.success('Coupon deleted successfully');
                     fetchCoupons(); // Refresh list
                 } else {
-                    alert('Failed to delete coupon: ' + response.message);
+                    toast.error('Failed to delete coupon: ' + response.message);
                 }
             } catch (err) {
                 console.error('Delete error:', err);
-                alert('Error deleting coupon');
+                toast.error('Error deleting coupon');
             }
         }
     };

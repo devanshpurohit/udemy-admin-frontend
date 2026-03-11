@@ -6,6 +6,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { getCertificates, generateCertificate, deleteCertificate, updateCertificate, revokeCertificate } from "../../services/certificateService";
 
 // Add cache-busting timestamp
@@ -88,18 +89,18 @@ function Certificate() {
                 const response = await updateCertificate(editingCertificate._id, formData);
                 console.log('📥 Update response:', response);
                 if (response.success) {
-                    alert('Certificate updated successfully');
+                    toast.success('Certificate updated successfully');
                 } else {
-                    alert('Failed to update certificate: ' + response.message);
+                    toast.error('Failed to update certificate: ' + response.message);
                 }
             } else {
                 console.log('➕ Generating new certificate with data:', formData);
                 const response = await generateCertificate(formData);
                 console.log('📥 Generate response:', response);
                 if (response.success) {
-                    alert('Certificate generated successfully');
+                    toast.success('Certificate generated successfully');
                 } else {
-                    alert('Failed to generate certificate: ' + response.message);
+                    toast.error('Failed to generate certificate: ' + response.message);
                 }
             }
             
@@ -120,7 +121,7 @@ function Certificate() {
             fetchCertificates(); // Refresh list
         } catch (err) {
             console.error('❌ Submit error:', err);
-            alert('Error saving certificate');
+            toast.error('Error saving certificate');
         }
     };
 
@@ -146,14 +147,14 @@ function Certificate() {
             try {
                 const response = await deleteCertificate(id);
                 if (response.success) {
-                    alert('Certificate deleted successfully');
+                    toast.success('Certificate deleted successfully');
                     fetchCertificates();
                 } else {
-                    alert('Failed to delete certificate: ' + response.message);
+                    toast.error('Failed to delete certificate: ' + response.message);
                 }
             } catch (err) {
                 console.error('❌ Delete error:', err);
-                alert('Error deleting certificate');
+                toast.error('Error deleting certificate');
             }
         }
     };
@@ -178,18 +179,18 @@ function Certificate() {
             const response = await revokeCertificate(id, reason, status);
             console.log('📥 Update response:', response);
             if (response.success) {
-                alert(`Certificate ${status === 'active' ? 'reactivated' : status === 'inactive' ? 'marked as inactive' : 'revoked'} successfully`);
+                toast.success(`Certificate ${status === 'active' ? 'reactivated' : status === 'inactive' ? 'marked as inactive' : 'revoked'} successfully`);
                 // Force refresh with cache busting
                 setCertificates([]); // Clear current data
                 setTimeout(() => {
                     fetchCertificates(); // Refetch fresh data
                 }, 100);
             } else {
-                alert(`Failed to update certificate: ${response.message}`);
+                toast.error(`Failed to update certificate: ${response.message}`);
             }
         } catch (err) {
             console.error('❌ Update status error:', err);
-            alert('Error updating certificate status');
+            toast.error('Error updating certificate status');
         }
     };
 

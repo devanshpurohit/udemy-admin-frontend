@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { NavLink, useParams } from "react-router-dom";
 import { getStudentById, updateStudentStatus } from "../../services/studentService";
 import { uploadProfileImage, refetchUser } from "../../services/profileService";
@@ -38,13 +39,13 @@ function StudentProfile() {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            alert('Please select an image file');
+            toast.error('Please select an image file');
             return;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            alert('Image size should be less than 5MB');
+            toast.error('Image size should be less than 5MB');
             return;
         }
 
@@ -86,14 +87,14 @@ function StudentProfile() {
                     localStorage.setItem('user', JSON.stringify(currentUser));
                 }
                 
-                alert('Profile image updated successfully!');
+                toast.success('Profile image updated successfully!');
                 console.log('New image URL:', result.data.profileImage);
             } else {
-                alert('Failed to upload image: ' + result.message);
+                toast.error('Failed to upload image: ' + result.message);
             }
         } catch (err) {
             console.error('Upload error:', err);
-            alert('Error uploading image');
+            toast.error('Error uploading image');
         } finally {
             setUploading(false);
         }
@@ -110,13 +111,13 @@ function StudentProfile() {
                     ...prev,
                     isActive: newStatus
                 }));
-                alert(`Student ${newStatus ? 'activated' : 'deactivated'} successfully!`);
+                toast.success(`Student ${newStatus ? 'activated' : 'deactivated'} successfully!`);
             } else {
-                alert('Failed to update status: ' + response.message);
+                toast.error('Failed to update status: ' + response.message);
             }
         } catch (err) {
             console.error('Status update error:', err);
-            alert('Error updating status');
+            toast.error('Error updating status');
         }
     };
 

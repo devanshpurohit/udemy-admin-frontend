@@ -4,6 +4,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "react-toastify";
 import { getStatements, downloadStatement, updateStatementStatus } from "../../services/statementService";
 
 function Statements() {
@@ -90,7 +91,7 @@ function Statements() {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error downloading statement:', error);
-            alert('Failed to download statement');
+            toast.error('Failed to download statement');
         }
     }, []);
 
@@ -104,7 +105,7 @@ function Statements() {
             window.open(url, '_blank');
         } catch (error) {
             console.error('Error viewing statement:', error);
-            alert('Failed to view statement');
+            toast.error('Failed to view statement');
         }
     }, []);
 
@@ -121,13 +122,13 @@ function Statements() {
                             : stmt
                     )
                 );
-                alert('Statement status updated successfully');
+                toast.success('Statement status updated successfully');
             } else {
-                alert('Failed to update statement status');
+                toast.error('Failed to update statement status');
             }
         } catch (error) {
             console.error('Error updating statement status:', error);
-            alert('Error updating statement status');
+            toast.error('Error updating statement status');
         }
     }, []);
 

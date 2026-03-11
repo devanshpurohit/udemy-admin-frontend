@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FaPlus } from "react-icons/fa";
@@ -64,13 +65,13 @@ function StudentManagement() {
                 if (response.success) {
                     setStudents(students.filter(student => student._id !== studentId));
                     setTotalStudents(totalStudents - 1);
-                    alert('Student deleted successfully');
+                    toast.success('Student deleted successfully');
                 } else {
-                    alert('Failed to delete student: ' + response.message);
+                    toast.error('Failed to delete student: ' + response.message);
                 }
             } catch (err) {
                 console.error('Delete student error:', err);
-                alert('Error deleting student');
+                toast.error('Error deleting student');
             }
         }
     };

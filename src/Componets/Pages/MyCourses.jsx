@@ -6,6 +6,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "react-toastify";
 import { getCourses, updateCourse, deleteCourse } from "../../services/courseService";
 import { getStoredUser } from "../../services/authService";
 
@@ -57,13 +58,13 @@ function MyCourses() {
                             : course
                     )
                 );
-                alert(`Course status updated to ${newStatus}`);
+                toast.success(`Course status updated to ${newStatus}`);
             } else {
-                alert('Failed to update course status');
+                toast.error('Failed to update course status');
             }
         } catch (error) {
             console.error('Error updating course status:', error);
-            alert('Error updating course status');
+            toast.error('Error updating course status');
         }
     };
 
@@ -78,9 +79,9 @@ function MyCourses() {
                 if (response.success) {
                     // Refresh courses from server instead of local state update
                     await refreshCourses();
-                    alert('Course deleted successfully');
+                    toast.success('Course deleted successfully');
                 } else {
-                    alert('Failed to delete course: ' + (response.message || 'Unknown error'));
+                    toast.error('Failed to delete course: ' + (response.message || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error deleting course:', error);
@@ -102,7 +103,7 @@ function MyCourses() {
                     errorMessage = JSON.stringify(error);
                 }
                 
-                alert('Error deleting course: ' + errorMessage);
+                toast.error('Error deleting course: ' + errorMessage);
             }
         }
     };
@@ -430,7 +431,7 @@ function MyCourses() {
                                                                             className="prescription-nav"
                                                                             onClick={(e) => {
                                                                                 e.preventDefault();
-                                                                                navigate(`/edit-course/${course._id}`);
+                                                                                navigate(`/new-course/${course._id}`);
                                                                             }}
                                                                         >
                                                                             Edit

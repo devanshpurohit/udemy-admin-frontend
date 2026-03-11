@@ -26,7 +26,7 @@ function NewCourses() {
         duration: 3,
         language: 'English',
         requirements: [],
-        whatYouLearn: [],
+        whatYouWillLearn: [],
         courseImage: ''
     });
 
@@ -51,7 +51,7 @@ function NewCourses() {
                     duration: course.duration || 3,
                     language: course.language || 'English',
                     requirements: course.requirements || [],
-                    whatYouLearn: course.whatYouWillLearn || [],
+                    whatYouWillLearn: course.whatYouWillLearn || [],
                     courseImage: course.courseImage || ''
                 });
                 setCompletedSteps(course.completedSteps || []);
@@ -296,6 +296,44 @@ function NewCourses() {
                                             value={formData.description}
                                             onChange={handleChange}
                                             rows="3"
+                                        ></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="col-lg-12">
+                                    <div className="custom-frm-bx">
+                                        <label htmlFor="">What you will learn (one item per line)</label>
+                                        <textarea 
+                                            name="whatYouWillLearn"
+                                            className="form-control text-form" 
+                                            placeholder="Example: Master React Hooks&#10;Build real-world projects"
+                                            value={Array.isArray(formData.whatYouWillLearn) ? formData.whatYouWillLearn.join('\n') : formData.whatYouWillLearn}
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    whatYouWillLearn: e.target.value.split('\n')
+                                                });
+                                            }}
+                                            rows="4"
+                                        ></textarea>
+                                    </div>
+                                </div>
+
+                                <div className="col-lg-12">
+                                    <div className="custom-frm-bx">
+                                        <label htmlFor="">Requirements (one item per line)</label>
+                                        <textarea 
+                                            name="requirements"
+                                            className="form-control text-form" 
+                                            placeholder="Example: Basic HTML/CSS knowledge&#10;JavaScript fundamentals"
+                                            value={Array.isArray(formData.requirements) ? formData.requirements.join('\n') : formData.requirements}
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    requirements: e.target.value.split('\n')
+                                                });
+                                            }}
+                                            rows="4"
                                         ></textarea>
                                     </div>
                                 </div>

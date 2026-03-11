@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { NavLink } from "react-router-dom";
 import { MdAddAPhoto } from "react-icons/md";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -131,11 +132,11 @@ function Settings() {
         // Clear selected image
         setProfileImage(null);
         
-        alert("Profile updated successfully ✅");
+        toast.success("Profile updated successfully ✅");
       }
     } catch (err) {
       console.error(err);
-      alert("Profile update failed ❌");
+      toast.error("Profile update failed ❌");
     }
   };
 
@@ -144,7 +145,7 @@ function Settings() {
     e.preventDefault();
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New passwords do not match!");
+      toast.error("New passwords do not match!");
       return;
     }
 
@@ -161,7 +162,7 @@ function Settings() {
       console.log('Settings - Password change response:', response);
 
       if (response.success) {
-        alert("Password changed successfully! ✅");
+        toast.success("Password changed successfully! ✅");
         setPasswordData({
           currentPassword: "",
           newPassword: "",
@@ -172,14 +173,14 @@ function Settings() {
         setTimeout(() => {
           console.log('Settings - Auto logout after password change');
           logout();
-          alert('Please login again with your new password 🔐');
+          toast.info('Please login again with your new password 🔐');
         }, 1000);
       } else {
-        alert("Password change failed: " + response.message);
+        toast.error("Password change failed: " + response.message);
       }
     } catch (err) {
       console.error('Settings - Password change error:', err);
-      alert("Password change error: " + err.message);
+      toast.error("Password change error: " + err.message);
     }
   };
 

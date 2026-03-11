@@ -10,7 +10,7 @@ import { FaCartShopping } from "react-icons/fa6";
 import { PiCertificateFill } from "react-icons/pi";
 import { IoSettingsSharp } from "react-icons/io5";
 import { FiLogOut } from "react-icons/fi";
-import { FaRobot } from "react-icons/fa";
+import { FaRobot, FaCreditCard } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 function LeftSidebar() {
@@ -108,6 +108,15 @@ function LeftSidebar() {
                                 }>
                                     <FaRobot className="fa-lg" />
                                     Live Chat
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
+                                <NavLink to="/ai-card-generator" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <FaCreditCard className="fa-lg" />
+                                    AI Card Generator
                                 </NavLink>
                             </li>
 

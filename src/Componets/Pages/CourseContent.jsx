@@ -37,6 +37,11 @@ function CourseContent() {
         options: ['', ''],
         correctAnswer: 0
     });
+    
+    // Video Upload State
+    const [videoSourceType, setVideoSourceType] = useState('url'); // 'url' or 'upload'
+    const [selectedVideoFile, setSelectedVideoFile] = useState(null);
+    const [videoUploading, setVideoUploading] = useState(false);
 
     useEffect(() => {
         if (courseId) {
@@ -92,85 +97,97 @@ function CourseContent() {
         }
     };
 
-    // Add Lesson to Section
     const handleAddLesson = async () => {
-        console.log('🔍 handleAddLesson called');
-        console.log('🔍 selectedSection:', selectedSection);
-        console.log('🔍 lessonForm:', lessonForm);
-        
         if (!selectedSection) {
-            console.error('❌ No section selected');
             setError('Please select a section first');
             return;
         }
-        
-        // Validate form data
-        console.log('🔍 Validating form data...');
-        console.log('🔍 title:', lessonForm.title, 'trim:', lessonForm.title.trim());
-        console.log('🔍 videoUrl:', lessonForm.videoUrl, 'trim:', lessonForm.videoUrl.trim());
-        console.log('🔍 duration:', lessonForm.duration);
-        
+
+        let finalVideoUrl = lessonForm.videoUrl;
+
+        // Validation for title and duration
         if (!lessonForm.title.trim()) {
-            console.error('❌ Title validation failed');
             setError('Lesson title is required');
             return;
         }
-        
-        if (!lessonForm.videoUrl.trim()) {
-            console.error('❌ Video URL validation failed');
-            setError('Video URL is required');
-            return;
-        }
-        
         if (!lessonForm.duration || lessonForm.duration < 1) {
-            console.error('❌ Duration validation failed');
             setError('Duration must be at least 1 minute');
             return;
         }
-        
-        console.log('✅ Form validation passed');
-        console.log('🔍 Adding lesson to section:', selectedSection);
-        console.log('🔍 Final lesson form data:', lessonForm);
-        
+
+        if (videoSourceType === 'upload') {
+            if (!selectedVideoFile) {
+                setError('Please select a video file to upload');
+                return;
+            }
+            try {
+                setVideoUploading(true);
+                const formData = new FormData();
+                formData.append('video', selectedVideoFile);
+                const token = localStorage.getItem('token');
+                const uploadRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/upload-video`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const uploadData = await uploadRes.json();
+                if (uploadData.success) {
+                    finalVideoUrl = uploadData.data.videoUrl;
+                } else {
+                    setError(uploadData.message || 'Failed to upload video');
+                    setVideoUploading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error('Video upload error:', err);
+                setError('Failed to upload video');
+                setVideoUploading(false);
+                return;
+            } finally {
+                setVideoUploading(false);
+            }
+        } else {
+            if (!finalVideoUrl || !finalVideoUrl.trim()) {
+                setError('Video URL is required');
+                return;
+            }
+        }
+
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
+            const dataToSubmit = { ...lessonForm, videoUrl: finalVideoUrl };
             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(lessonForm)
+                body: JSON.stringify(dataToSubmit)
             });
 
-            console.log('🔍 Response status:', response.status);
             const data = await response.json();
-            console.log('🔍 Response data:', data);
             
             if (data.success) {
-                console.log('✅ Lesson added successfully:', data.data.lesson);
                 const updatedSections = sections.map(section => {
                     if (section._id === selectedSection) {
-                        return {
-                            ...section,
-                            lessons: [...section.lessons, data.data.lesson]
-                        };
+                        return { ...section, lessons: [...section.lessons, data.data.lesson] };
                     }
                     return section;
                 });
-                console.log('🔍 Updated sections:', updatedSections);
                 setSections(updatedSections);
                 setLessonForm({ title: '', description: '', videoUrl: '', duration: 30, isPreview: false });
+                setSelectedVideoFile(null);
+                setVideoSourceType('url');
                 setShowAddLesson(false);
                 setSelectedSection(null);
                 setSuccess('Lesson added successfully!');
             } else {
-                console.error('❌ Failed to add lesson:', data.message);
                 setError(data.message || 'Failed to add lesson');
             }
         } catch (err) {
-            console.error('❌ Add lesson error:', err);
+            console.error('Add lesson error:', err);
             setError('Failed to add lesson');
         } finally {
             setLoading(false);
@@ -749,16 +766,51 @@ function CourseContent() {
                                         </div>
                                         <div className="col-md-12">
                                             <div className="mb-3">
-                                                <label className="form-label">Video URL *</label>
-                                                <input
-                                                    type="url"
-                                                    className="form-control"
-                                                    name="videoUrl"
-                                                    value={lessonForm.videoUrl}
-                                                    onChange={handleLessonFormChange}
-                                                    placeholder="https://youtube.com/watch?v=..."
-                                                    required
-                                                />
+                                                <label className="form-label d-block">Video Source *</label>
+                                                <div className="btn-group mb-3" role="group">
+                                                    <input 
+                                                        type="radio" 
+                                                        className="btn-check" 
+                                                        name="videoSource" 
+                                                        id="btnradio1" 
+                                                        autoComplete="off" 
+                                                        checked={videoSourceType === 'url'} 
+                                                        onChange={() => setVideoSourceType('url')} 
+                                                    />
+                                                    <label className="btn btn-outline-primary" htmlFor="btnradio1">YouTube URL</label>
+
+                                                    <input 
+                                                        type="radio" 
+                                                        className="btn-check" 
+                                                        name="videoSource" 
+                                                        id="btnradio2" 
+                                                        autoComplete="off" 
+                                                        checked={videoSourceType === 'upload'} 
+                                                        onChange={() => setVideoSourceType('upload')} 
+                                                    />
+                                                    <label className="btn btn-outline-primary" htmlFor="btnradio2">Upload File</label>
+                                                </div>
+
+                                                {videoSourceType === 'url' ? (
+                                                    <input
+                                                        type="url"
+                                                        className="form-control"
+                                                        name="videoUrl"
+                                                        value={lessonForm.videoUrl}
+                                                        onChange={handleLessonFormChange}
+                                                        placeholder="https://youtube.com/watch?v=..."
+                                                    />
+                                                ) : (
+                                                    <div>
+                                                        <input 
+                                                            type="file" 
+                                                            className="form-control" 
+                                                            accept="video/*" 
+                                                            onChange={(e) => setSelectedVideoFile(e.target.files[0])} 
+                                                        />
+                                                        {selectedVideoFile && <small className="text-muted d-block mt-1">Selected: {selectedVideoFile.name}</small>}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="col-md-12">
@@ -782,9 +834,9 @@ function CourseContent() {
                                         <button 
                                             className="btn btn-primary"
                                             onClick={handleAddLesson}
-                                            disabled={loading}
+                                            disabled={loading || videoUploading}
                                         >
-                                            {loading ? 'Adding...' : 'Add Lesson'}
+                                            {videoUploading ? 'Uploading Video...' : loading ? 'Adding Lesson...' : 'Add Lesson'}
                                         </button>
                                         <button 
                                             className="btn btn-secondary"

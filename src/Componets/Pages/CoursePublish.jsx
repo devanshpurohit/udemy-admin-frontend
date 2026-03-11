@@ -177,10 +177,10 @@ function CoursePublish() {
           disabled={publishing}
         >
           {publishing ? (
-            "Publishing..."
+            course.status === 'published' ? 'Updating...' : 'Publishing...'
           ) : (
             <>
-              <FontAwesomeIcon icon={faRocket} /> Publish Course
+              <FontAwesomeIcon icon={faRocket} /> {course.status === 'published' ? 'Update Course' : 'Publish Course'}
             </>
           )}
         </button>

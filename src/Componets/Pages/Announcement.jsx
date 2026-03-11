@@ -6,6 +6,7 @@ import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { getAnnouncements, createAnnouncement, deleteAnnouncement, updateAnnouncement, toggleAnnouncementStatus } from "../../services/announcementService";
 
 // Add cache-busting timestamp
@@ -88,9 +89,9 @@ function Announcement() {
                 const response = await updateAnnouncement(editingAnnouncement._id, formData);
                 console.log('📥 Update response:', response);
                 if (response.success) {
-                    alert('Announcement updated successfully');
+                    toast.success('Announcement updated successfully');
                 } else {
-                    alert('Failed to update announcement: ' + response.message);
+                    toast.error('Failed to update announcement: ' + response.message);
                 }
             } else {
                 console.log('➕ Creating new announcement with data:', formData);
@@ -98,9 +99,9 @@ function Announcement() {
                 const response = await createAnnouncement(formData);
                 console.log('📥 Create response:', response);
                 if (response.success) {
-                    alert('Announcement created successfully');
+                    toast.success('Announcement created successfully');
                 } else {
-                    alert('Failed to create announcement: ' + response.message);
+                    toast.error('Failed to create announcement: ' + response.message);
                 }
             }
             
@@ -120,7 +121,7 @@ function Announcement() {
             fetchAnnouncements(); // Refresh list
         } catch (err) {
             console.error('❌ Submit error:', err);
-            alert('Error saving announcement');
+            toast.error('Error saving announcement');
         }
     };
 
@@ -145,14 +146,14 @@ function Announcement() {
             try {
                 const response = await deleteAnnouncement(id);
                 if (response.success) {
-                    alert('Announcement deleted successfully');
+                    toast.success('Announcement deleted successfully');
                     fetchAnnouncements();
                 } else {
-                    alert('Failed to delete announcement: ' + response.message);
+                    toast.error('Failed to delete announcement: ' + response.message);
                 }
             } catch (err) {
                 console.error('❌ Delete error:', err);
-                alert('Error deleting announcement');
+                toast.error('Error deleting announcement');
             }
         }
     };
@@ -164,11 +165,11 @@ function Announcement() {
             if (response.success) {
                 fetchAnnouncements();
             } else {
-                alert('Failed to update announcement status: ' + response.message);
+                toast.error('Failed to update announcement status: ' + response.message);
             }
         } catch (err) {
             console.error('❌ Status change error:', err);
-            alert('Error updating announcement status');
+            toast.error('Error updating announcement status');
         }
     };
     const handleToggleStatus = async (id) => {
@@ -177,11 +178,11 @@ function Announcement() {
             if (response.success) {
                 fetchAnnouncements();
             } else {
-                alert('Failed to toggle announcement status: ' + response.message);
+                toast.error('Failed to toggle announcement status: ' + response.message);
             }
         } catch (err) {
             console.error('❌ Toggle status error:', err);
-            alert('Error toggling announcement status');
+            toast.error('Error toggling announcement status');
         }
     };
 
