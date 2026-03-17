@@ -63,7 +63,8 @@
 
 
 @media (min-width: 992px) {
-  .mobile-menu-btn {
+  .mobile-menu-btn,
+  .tp-mobile-menu-btn {
     display: none;
   }
 

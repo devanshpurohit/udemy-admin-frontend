@@ -16,34 +16,65 @@ function MyCourses() {
     const [loading, setLoading] = useState(true);
     const [userReady, setUserReady] = useState(false);
     const [userData, setUserData] = useState(null);
-    const [statusFilter, setStatusFilter] = useState('all'); // Add status filter state
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortOrder, setSortOrder] = useState('desc');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCourses, setTotalCourses] = useState(0);
+    const [limit, setLimit] = useState(8);
+
     const navigate = useNavigate();
     const debounceTimeoutRef = useRef(null);
+    const searchTimeoutRef = useRef(null);
 
-    // Handle status filter change with debouncing
-    const handleStatusFilter = useCallback((status) => {
+    // Add cache-busting timestamp
+    const CACHE_BUSTER = useRef(new Date().getTime());
+
+    // Handle status filter change
+    const handleStatusFilter = (status) => {
         setStatusFilter(status);
-        
-        // Clear existing timeout
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-        
-        // Set new timeout for debounced API call
-        debounceTimeoutRef.current = setTimeout(() => {
-            if (userData) {
-                fetchCourses(userData, status);
-            }
-        }, 300); // 300ms debounce delay
-    }, [userData]);
+        setCurrentPage(1); // Reset to first page on filter change
+    };
 
     // Refresh courses function
     const refreshCourses = useCallback(async () => {
-        if (userData) {
-            await fetchCourses(userData, statusFilter);
+        await fetchCourses(currentPage, statusFilter, searchTerm, sortBy, sortOrder);
+    }, [currentPage, statusFilter, searchTerm, sortBy, sortOrder]);
+
+    // Handle search change with debouncing
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchTerm(query);
+
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
         }
-    }, [userData, statusFilter]);
+
+        searchTimeoutRef.current = setTimeout(() => {
+            setDebouncedSearchTerm(query);
+            setCurrentPage(1); // Reset to first page on search
+        }, 500);
+    };
+
+    // Handle search submit
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        setDebouncedSearchTerm(searchTerm);
+        setCurrentPage(1); // Reset to first page on search
+    };
+
+    // Handle page change
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
 
     // Handle course status change
     const handleStatusChange = async (courseId, newStatus) => {
@@ -85,49 +116,37 @@ function MyCourses() {
                 }
             } catch (error) {
                 console.error('Error deleting course:', error);
-                console.error('Error type:', typeof error);
-                console.error('Error response:', error.response);
-                console.error('Error data:', error.response?.data);
-                console.error('Error message:', error.message);
-                
-                // Better error handling
-                let errorMessage = 'Unknown error occurred';
-                
-                if (error.response?.data?.message) {
-                    errorMessage = error.response.data.message;
-                } else if (error.message) {
-                    errorMessage = error.message;
-                } else if (typeof error === 'string') {
-                    errorMessage = error;
-                } else if (error && typeof error === 'object') {
-                    errorMessage = JSON.stringify(error);
-                }
-                
-                toast.error('Error deleting course: ' + errorMessage);
+                toast.error('Error deleting course');
             }
         }
     };
 
-    const fetchCourses = useCallback(async (userData, status = 'all') => {
+    const fetchCourses = useCallback(async (page = currentPage, status = statusFilter, search = debouncedSearchTerm, sBy = sortBy, sOrder = sortOrder) => {
         try {
-            console.log('Fetching courses with status filter:', status);
+            console.log('Fetching courses - Page:', page, 'Status:', status, 'Search:', search, 'SortBy:', sBy, 'SortOrder:', sOrder);
+            setLoading(true);
             setError(null);
-            const params = {};
+            const params = {
+                _: CACHE_BUSTER.current,
+                sortBy: sBy,
+                sortOrder: sOrder,
+                page,
+                limit
+            };
             if (status !== 'all') {
                 params.status = status;
             }
+            if (search) {
+                params.search = search;
+            }
+            
             const response = await getCourses(params);
             console.log('Courses response:', response);
             if (response.success) {
-                console.log('Courses data:', response.data.courses);
-                // Check instructor IDs
-                response.data.courses.forEach(course => {
-                    const userId = userData?.user?.id || userData?._id || 'default';
-                    console.log(`Course: ${course.title}, Instructor: ${course.instructor}, Instructor ID: ${course.instructor?._id || course.instructor}, Instructor ID type: ${typeof (course.instructor?._id || course.instructor)}, User ID: ${userId}, User ID type: ${typeof userId}, Match: ${(course.instructor?._id || course.instructor) === userId}`);
-                });
-                setCourses(response.data.courses);
+                setCourses(response.data.courses || []);
+                setTotalPages(response.data.pagination?.pages || 1);
+                setTotalCourses(response.data.pagination?.total || 0);
             } else {
-                console.error('API error:', response.message);
                 setError(response.message || 'Failed to fetch courses');
             }
         } catch (error) {
@@ -136,48 +155,36 @@ function MyCourses() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [sortBy, sortOrder, statusFilter, debouncedSearchTerm, currentPage, limit]);
 
     useEffect(() => {
-        // Get logged-in user data
-        const userData = getStoredUser();
-        console.log('User data:', userData);
-        console.log('User ID:', userData?.id || userData?._id);
-        console.log('User ID type:', typeof (userData?.id || userData?._id));
-        console.log('User ID string:', String(userData?.id || userData?._id));
+        const storedUser = getStoredUser();
+        console.log('User data:', storedUser);
         
-        if (userData) {
+        if (storedUser) {
             console.log('Setting user state...');
-            console.log('User data before setting:', userData);
-            setUser(userData);
-            setUserData(userData);
-            console.log('User data after setting:', userData);
+            setUser(storedUser);
+            setUserData(storedUser);
+            setUserReady(true);
         } else {
             console.log('No user data found');
             setLoading(false);
+            setUserReady(true);
         }
 
         // Cleanup function
         return () => {
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
             }
         };
     }, []);
 
     useEffect(() => {
-        if (user && userData) {
-            console.log('User state updated:', user);
-            console.log('User ID from state:', user?.id || user?._id);
-            console.log('User ID type:', typeof (user?.id || user?._id));
-            console.log('User ID string:', String(user?.id || user?._id));
-            console.log('userData state:', userData);
-            console.log('userData ID:', userData?.id || userData?._id);
-            setUserReady(true);
-            // Initial fetch with 'all' status
-            fetchCourses(userData, 'all');
+        if (userReady && (userData || user)) {
+            fetchCourses();
         }
-    }, [user, userData, fetchCourses]);
+    }, [statusFilter, sortBy, sortOrder, debouncedSearchTerm, fetchCourses, userReady, userData, user]);
     return (
         <>
             <div className="main-content flex-grow-1 p-3 overflow-auto">
@@ -218,88 +225,124 @@ function MyCourses() {
                     <div className="col-lg-3">
                         <div className="custom-frm-bx">
                             <input
-                                type="email"
+                                type="text"
                                 className="form-control  search-table-frm pe-5"
-                                id="email"
-                                placeholder="Search"
-                                required
+                                id="search"
+                                placeholder="Search courses..."
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
                             />
                             <div className="adm-search-bx">
-                                <button className="filter-btn">
+                                <button className="filter-btn" onClick={handleSearchSubmit}>
                                     <FontAwesomeIcon icon={faSearch} />
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="col-lg-4">
-                        <div className="text-end">
-
-                            <div className="dropdown">
-                                <a
-                                    href="javascript:void(0)"
-                                    className="lg-white-btn dropdown-toggle "
-                                    id="acticonMenu2"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                >
-                                    Status: {statusFilter === 'all' ? 'All' : statusFilter === 'published' ? 'Published' : statusFilter === 'draft' ? 'Draft' : 'Archived'}
-                                </a>
-                                <ul
-                                    className="dropdown-menu dropdown-menu-end  tble-action-menu admin-dropdown-card"
-                                    aria-labelledby="acticonMenu2"
-                                >
-                                    <li className="prescription-item">
-                                        <a 
-                                            href="#" 
-                                            className={`prescription-nav ${statusFilter === 'all' ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handleStatusFilter('all');
-                                            }}
-                                        >
-                                            All
-                                        </a>
-                                    </li>
-                                    <li className="prescription-item">
-                                        <a 
-                                            href="#" 
-                                            className={`prescription-nav ${statusFilter === 'published' ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handleStatusFilter('published');
-                                            }}
-                                        >
-                                            Published
-                                        </a>
-                                    </li>
-                                    <li className="prescription-item">
-                                        <a 
-                                            href="#" 
-                                            className={`prescription-nav ${statusFilter === 'draft' ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handleStatusFilter('draft');
-                                            }}
-                                        >
-                                            Draft
-                                        </a>
-                                    </li>
-                                    <li className="prescription-item">
-                                        <a 
-                                            href="#" 
-                                            className={`prescription-nav ${statusFilter === 'archived' ? 'active' : ''}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handleStatusFilter('archived');
-                                            }}
-                                        >
-                                            Archived
-                                        </a>
-                                    </li>
-                                </ul>
+                    <div className="col-lg-6">
+                        <div className="d-flex align-items-center justify-content-end gap-3">
+                            <div className="text-end">
+                                <div className="dropdown">
+                                    <a
+                                        href="javascript:void(0)"
+                                        className="lg-white-btn dropdown-toggle"
+                                        id="sortDropdown"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                    >
+                                        Sort by {sortBy === 'title' ? 'Title' : sortBy === 'price' ? 'Price' : 'Date'} ({sortOrder === 'asc' ? '↑' : '↓'})
+                                    </a>
+                                    <ul className="dropdown-menu dropdown-menu-end tble-action-menu admin-dropdown-card" aria-labelledby="sortDropdown">
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('desc'); }}>Date (Newest)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('asc'); }}>Date (Oldest)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('title'); setSortOrder('asc'); }}>Title (A-Z)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('title'); setSortOrder('desc'); }}>Title (Z-A)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('price'); setSortOrder('desc'); }}>Price (High to Low)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('price'); setSortOrder('asc'); }}>Price (Low to High)</a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
 
+                            <div className="text-end">
+                                <div className="dropdown">
+                                    <a
+                                        href="javascript:void(0)"
+                                        className="lg-white-btn dropdown-toggle "
+                                        id="acticonMenu2"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                    >
+                                        Status: {statusFilter === 'all' ? 'All' : statusFilter === 'published' ? 'Published' : statusFilter === 'draft' ? 'Draft' : 'Archived'}
+                                    </a>
+                                    <ul
+                                        className="dropdown-menu dropdown-menu-end  tble-action-menu admin-dropdown-card"
+                                        aria-labelledby="acticonMenu2"
+                                    >
+                                        <li className="prescription-item">
+                                            <a 
+                                                href="#" 
+                                                className={`prescription-nav ${statusFilter === 'all' ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStatusFilter('all');
+                                                }}
+                                            >
+                                                All
+                                            </a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a 
+                                                href="#" 
+                                                className={`prescription-nav ${statusFilter === 'published' ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStatusFilter('published');
+                                                }}
+                                            >
+                                                Published
+                                            </a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a 
+                                                href="#" 
+                                                className={`prescription-nav ${statusFilter === 'draft' ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStatusFilter('draft');
+                                                }}
+                                            >
+                                                Draft
+                                            </a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a 
+                                                href="#" 
+                                                className={`prescription-nav ${statusFilter === 'archived' ? 'active' : ''}`}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleStatusFilter('archived');
+                                                }}
+                                            >
+                                                Archived
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -354,20 +397,7 @@ function MyCourses() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            courses
-                                                .filter(course => {
-                                                    const instructorId = course.instructor?._id || course.instructor;
-                                                    const userId = userData?.user?.id || userData?._id || user?.id || user?._id;
-                                                    const match = instructorId === userId;
-                                                    
-                                                    // Apply status filter if not 'all'
-                                                    const statusMatch = statusFilter === 'all' || course.status === statusFilter;
-                                                    
-                                                    console.log(`Filtering course: ${course.title}, instructor: ${instructorId} (${typeof instructorId}), user: ${userId} (${typeof userId}), match: ${match}, status: ${course.status}, statusFilter: ${statusFilter}, statusMatch: ${statusMatch}`);
-                                                    
-                                                    return match && statusMatch;
-                                                })
-                                                .map((course, index) => (
+                                            courses.map((course, index) => (
                                                     <tr key={course._id}>
                                                         <td>{index + 1}.</td>
                                                         <td>
@@ -390,7 +420,7 @@ function MyCourses() {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>{course.students || 0}</td>
+                                                        <td>{course.students || course.totalEnrollments || 0}</td>
                                                         <td>${course.price || 0}</td>
                                                         <td>{course.rating || 4.5}</td>
                                                         <td>
@@ -455,11 +485,7 @@ function MyCourses() {
                                                     </tr>
                                                 ))
                                         )}
-                                        {courses.filter(course => {
-                                                    const instructorId = course.instructor?._id || course.instructor;
-                                                    const userId = userData?.user?.id || userData?._id || user?.id || user?._id;
-                                                    return instructorId === userId;
-                                                }).length === 0 && !loading && userReady && (
+                                        {courses.length === 0 && !loading && userReady && (
                                             <tr>
                                                 <td colSpan="7" className="text-center">
                                                     No courses found. Create your first course!
@@ -474,33 +500,42 @@ function MyCourses() {
                         <div className="dz-pagination-wrapper">
 
                             <div className="dz-pagination-info">
-                                Showing 1 to 20 of 21 result
+                                Showing {courses.length > 0 ? (currentPage - 1) * limit + 1 : 0} to {Math.min(currentPage * limit, totalCourses)} of {totalCourses} results
                             </div>
 
                             <nav>
                                 <ul className="pagination dz-custom-pagination mb-0">
-                                    <li className="page-item">
-                                        <a className="page-link dz-page-link" href="#" aria-label="Previous">
+                                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                        <a 
+                                            className="page-link dz-page-link" 
+                                            href="#" 
+                                            aria-label="Previous"
+                                            onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }}
+                                        >
                                             <MdChevronLeft />
-
                                         </a>
                                     </li>
 
-                                    <li className="page-item active">
-                                        <a className="page-link dz-page-link" href="#">1</a>
-                                    </li>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                        <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                                            <a 
+                                                className="page-link dz-page-link" 
+                                                href="#"
+                                                onClick={(e) => { e.preventDefault(); handlePageChange(i + 1); }}
+                                            >
+                                                {i + 1}
+                                            </a>
+                                        </li>
+                                    ))}
 
-                                    <li className="page-item">
-                                        <a className="page-link dz-page-link" href="#">2</a>
-                                    </li>
-                                    <li className="page-item">
-                                        <a className="page-link dz-page-link" href="#">3</a>
-                                    </li>
-
-                                    <li className="page-item">
-                                        <a className="page-link dz-page-link" href="#" aria-label="Next">
+                                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                        <a 
+                                            className="page-link dz-page-link" 
+                                            href="#" 
+                                            aria-label="Next"
+                                            onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }}
+                                        >
                                             <MdChevronRight />
-
                                         </a>
                                     </li>
                                 </ul>

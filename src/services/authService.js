@@ -52,6 +52,9 @@ export const login = async (credentials) => {
       localStorage.setItem('user', JSON.stringify(userData));
       console.log('✅ User data saved to localStorage:', userData);
       
+      // Dispatch custom event for same-tab updates
+      window.dispatchEvent(new Event('userUpdated'));
+      
       // Verify storage
       const storedUser = localStorage.getItem('user');
       const storedToken = localStorage.getItem('token');

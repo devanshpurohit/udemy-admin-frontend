@@ -2,11 +2,13 @@ import { faClose, faArrowLeft, faArrowRight, faUpload, faImage, faVideo, faFile,
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { saveCourseMedia, getCourseDraft } from "../../services/courseService";
 
 function CourseMedia() {
     const navigate = useNavigate();
     const { courseId } = useParams();
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     
@@ -14,6 +16,28 @@ function CourseMedia() {
     const [courseImagePreview, setCourseImagePreview] = useState('');
     const [previewVideoPreview, setPreviewVideoPreview] = useState('');
     const [courseResources, setCourseResources] = useState([]);
+
+    useEffect(() => {
+        if (courseId) {
+            fetchCourseMedia();
+        }
+    }, [courseId]);
+
+    const fetchCourseMedia = async () => {
+        try {
+            setFetching(true);
+            const response = await getCourseDraft(courseId);
+            if (response.success && response.data) {
+                setCourseImagePreview(response.data.courseImage || '');
+                setPreviewVideoPreview(response.data.previewVideo || '');
+                setCourseResources(response.data.resources || []);
+            }
+        } catch (err) {
+            console.error('Fetch course media error:', err);
+        } finally {
+            setFetching(false);
+        }
+    };
 
     const handleCourseImageChange = (e) => {
         const file = e.target.files[0];
@@ -40,22 +64,19 @@ function CourseMedia() {
     const handleResourceUpload = (e) => {
         const files = e.target.files;
         if (files) {
-            const newResources = [];
-            
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const newResource = {
                         name: file.name,
                         url: reader.result,
-                        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'other',
+                        type: file.type.startsWith('image/') ? 'image' : 
+                              file.type.includes('pdf') ? 'pdf' :
+                              file.type.startsWith('video/') ? 'video' : 'other',
                         size: file.size,
                         uploadedAt: new Date().toISOString()
                     };
-                    newResources.push(newResource);
-                    
-                    // Add to resources array
-                    setCourseResources(prev => [...prev, ...newResources]);
+                    setCourseResources(prev => [...prev, newResource]);
                 };
                 reader.readAsDataURL(file);
             });
@@ -66,12 +87,30 @@ function CourseMedia() {
         setCourseResources(courseResources.filter((_, i) => i !== index));
     };
 
-    const handleNext = () => {
-        // Simple navigation - just go to next step
-        if (courseId) {
-            navigate(`/course-pricing/${courseId}`);
-        } else {
-            navigate('/course-pricing');
+    const handleNext = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            const mediaData = {
+                courseImage: courseImagePreview,
+                previewVideo: previewVideoPreview,
+                resources: courseResources
+            };
+
+            const response = await saveCourseMedia(courseId, mediaData);
+
+            if (response.success) {
+                setSuccess('Course media saved successfully!');
+                navigate(`/course-pricing/${courseId}`);
+            } else {
+                setError(response.message || 'Failed to save course media');
+            }
+        } catch (err) {
+            console.error('Save course media error:', err);
+            setError('Failed to save course media');
+        } finally {
+            setLoading(false);
         }
     };
 

@@ -1,21 +1,27 @@
-import { faDownload, faEye, faSearch } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faEye, faSearch, faClose } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
-import { getStatements, downloadStatement, updateStatementStatus } from "../../services/statementService";
+import { getStatements, downloadStatement, updateStatementStatus, getStatement } from "../../services/statementService";
 
 function Statements() {
     const [statements, setStatements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('all');
     const [status, setStatus] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortOrder, setSortOrder] = useState('desc');
+    const [totalStatements, setTotalStatements] = useState(0);
+    const [showStatementModal, setShowStatementModal] = useState(false);
+    const [viewingStatement, setViewingStatement] = useState(null);
+    const [modalLoading, setModalLoading] = useState(false);
+    const limit = 8;
     const debounceTimeoutRef = useRef(null);
 
     // Fetch statements with filters
@@ -24,23 +30,26 @@ function Statements() {
             setLoading(true);
             setError(null);
             
-            const token = localStorage.getItem("token");
+            const params = {
+                page: currentPage,
+                limit,
+                search: searchTerm || undefined,
+                status: status !== 'all' ? status : undefined,
+                sortBy,
+                sortOrder
+            };
 
-            const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/admin/statements`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}` 
-                    }
+            const response = await getStatements(params);
+
+            if (response.success) {
+                setStatements(response.data || []);
+                // If the backend returns pagination data
+                if (response.pagination) {
+                    setTotalPages(response.pagination.pages || 1);
+                    setTotalStatements(response.pagination.total || 0);
                 }
-            );
-
-            const data = await res.json();
-
-            if (data.success) {
-                setStatements(data.data || []);
             } else {
-                setError(data.message || 'Failed to fetch statements');
+                setError(response.message || 'Failed to fetch statements');
             }
         } catch (error) {
             console.error('Error fetching statements:', error);
@@ -48,7 +57,7 @@ function Statements() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage, searchTerm, status, sortBy, sortOrder]);
 
     // Debounced search
     const handleSearch = useCallback((value) => {
@@ -63,11 +72,6 @@ function Statements() {
         }, 500);
     }, []);
 
-    // Handle payment method filter
-    const handlePaymentMethodFilter = useCallback((method) => {
-        setPaymentMethod(method);
-        setCurrentPage(1);
-    }, []);
 
     // Handle status filter
     const handleStatusFilter = useCallback((newStatus) => {
@@ -98,14 +102,19 @@ function Statements() {
     // Handle view statement
     const handleViewStatement = useCallback(async (statementId) => {
         try {
-            const response = await downloadStatement(statementId);
-            
-            // Open in new tab
-            const url = window.URL.createObjectURL(new Blob([response], { type: 'application/pdf' }));
-            window.open(url, '_blank');
+            setModalLoading(true);
+            const response = await getStatement(statementId);
+            if (response.success) {
+                setViewingStatement(response.data);
+                setShowStatementModal(true);
+            } else {
+                toast.error(response.message || 'Failed to fetch statement details');
+            }
         } catch (error) {
             console.error('Error viewing statement:', error);
             toast.error('Failed to view statement');
+        } finally {
+            setModalLoading(false);
         }
     }, []);
 
@@ -179,74 +188,49 @@ function Statements() {
                             <input
                                 type="text"
                                 className="form-control search-table-frm pe-5"
-                                placeholder="Search by order ID or course name"
+                                placeholder="Search by order ID"
                                 value={searchTerm}
                                 onChange={(e) => handleSearch(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && fetchStatements()}
                             />
                             <div className="adm-search-bx">
-                                <button className="filter-btn">
+                                <button className="filter-btn" onClick={() => { setCurrentPage(1); fetchStatements(); }}>
                                     <FontAwesomeIcon icon={faSearch} />
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="col-lg-4">
+                    <div className="col-lg-6">
                         <div className="d-flex align-items-center justify-content-end gap-3">
                             <div className="text-end">
                                 <div className="dropdown">
                                     <a
                                         href="javascript:void(0)"
                                         className="lg-white-btn dropdown-toggle"
-                                        id="paymentMethodDropdown"
+                                        id="sortDropdown"
                                         data-bs-toggle="dropdown"
                                         aria-expanded="false"
                                     >
-                                        Payment Method: {paymentMethod === 'all' ? 'All' : paymentMethod}
+                                        Sort by {sortBy === 'amount' ? 'Amount' : 'Date'} ({sortOrder === 'asc' ? '↑' : '↓'})
                                     </a>
-                                    <ul
-                                        className="dropdown-menu dropdown-menu-end tble-action-menu admin-dropdown-card"
-                                        aria-labelledby="paymentMethodDropdown"
-                                    >
+                                    <ul className="dropdown-menu dropdown-menu-end tble-action-menu admin-dropdown-card" aria-labelledby="sortDropdown">
                                         <li className="prescription-item">
-                                            <a 
-                                                href="#" 
-                                                className={`prescription-nav ${paymentMethod === 'all' ? 'active' : ''}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePaymentMethodFilter('all');
-                                                }}
-                                            >
-                                                All
-                                            </a>
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('desc'); }}>Date (Newest)</a>
                                         </li>
                                         <li className="prescription-item">
-                                            <a 
-                                                href="#" 
-                                                className={`prescription-nav ${paymentMethod === 'Bank Transfer' ? 'active' : ''}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePaymentMethodFilter('Bank Transfer');
-                                                }}
-                                            >
-                                                Bank Transfer
-                                            </a>
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('asc'); }}>Date (Oldest)</a>
                                         </li>
                                         <li className="prescription-item">
-                                            <a 
-                                                href="#" 
-                                                className={`prescription-nav ${paymentMethod === 'UPI' ? 'active' : ''}`}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePaymentMethodFilter('UPI');
-                                                }}
-                                            >
-                                                UPI
-                                            </a>
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('amount'); setSortOrder('desc'); }}>Amount (High to Low)</a>
+                                        </li>
+                                        <li className="prescription-item">
+                                            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('amount'); setSortOrder('asc'); }}>Amount (Low to High)</a>
                                         </li>
                                     </ul>
                                 </div>
                             </div>
+
 
                             <div className="text-end">
                                 <div className="dropdown">
@@ -384,7 +368,7 @@ function Statements() {
 
                         <div className="dz-pagination-wrapper">
                             <div className="dz-pagination-info">
-                                Showing {statements.length > 0 ? (currentPage - 1) * 20 + 1 : 0} to {Math.min(currentPage * 20, statements.length + (currentPage - 1) * 20)} of {totalPages * 20} results
+                                Showing {statements.length > 0 ? (currentPage - 1) * limit + 1 : 0} to {Math.min(currentPage * limit, totalStatements)} of {totalStatements} results
                             </div>
 
                             <nav>
@@ -399,25 +383,16 @@ function Statements() {
                                         </button>
                                     </li>
 
-                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                        const pageNum = i + 1;
-                                        return (
-                                            <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
-                                                <button 
-                                                    className="page-link dz-page-link" 
-                                                    onClick={() => setCurrentPage(pageNum)}
-                                                >
-                                                    {pageNum}
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-
-                                    {totalPages > 5 && (
-                                        <li className="page-item disabled">
-                                            <span className="page-link dz-page-link">...</span>
+                                    {[...Array(totalPages)].map((_, i) => (
+                                        <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                                            <button 
+                                                className="page-link dz-page-link" 
+                                                onClick={() => setCurrentPage(i + 1)}
+                                            >
+                                                {i + 1}
+                                            </button>
                                         </li>
-                                    )}
+                                    ))}
 
                                     <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
                                         <button 
@@ -434,6 +409,105 @@ function Statements() {
                     </div>
                 </div>
             </div>
+
+            {/* Statement Preview Modal */}
+            <div className={`modal fade ${showStatementModal ? 'show d-block' : ''}`} 
+                 style={{ display: showStatementModal ? 'block' : 'none', backgroundColor: 'rgba(0,0,0,0.5)' }} 
+                 tabIndex="-1" 
+                 aria-hidden={!showStatementModal}>
+                <div className="modal-dialog modal-dialog-centered modal-lg">
+                    <div className="modal-content admin-dropdown-card w-100" style={{ border: 'none' }}>
+                        <div className="modal-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0 fw-600">Statement Details</h5>
+                            <button type="button" className="btn-close" onClick={() => setShowStatementModal(false)}>
+                                <FontAwesomeIcon icon={faClose} style={{ color: '#000' }} />
+                            </button>
+                        </div>
+                        <div className="modal-body p-4">
+                            {modalLoading ? (
+                                <div className="text-center py-5">
+                                    <div className="spinner-border text-primary" role="status">
+                                        <span className="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            ) : viewingStatement ? (
+                                <div className="statement-preview">
+                                    <div className="row mb-4">
+                                        <div className="col-md-6">
+                                            <p className="mb-1 text-muted fz-14">Order ID</p>
+                                            <h6 className="fw-600">#{viewingStatement.orderId}</h6>
+                                        </div>
+                                        <div className="col-md-6 text-md-end">
+                                            <p className="mb-1 text-muted fz-14">Date</p>
+                                            <h6 className="fw-600">{new Date(viewingStatement.createdAt).toLocaleDateString()}</h6>
+                                        </div>
+                                    </div>
+                                    <hr className="my-3" />
+                                    <div className="row mb-4">
+                                        <div className="col-md-6">
+                                            <p className="mb-1 text-muted fz-14">Student Details</p>
+                                            <h6 className="fw-600 mb-0">{viewingStatement.student?.name || viewingStatement.user?.username || 'N/A'}</h6>
+                                            <p className="fz-14 mb-0 text-muted">{viewingStatement.student?.email || 'N/A'}</p>
+                                        </div>
+                                        <div className="col-md-6 text-md-end">
+                                            <p className="mb-1 text-muted fz-14">Payment Info</p>
+                                            <h6 className="fw-600 mb-0">{viewingStatement.paymentMethod}</h6>
+                                            <span className={`badge ${viewingStatement.status === 'Paid' ? 'bg-success' : 'bg-warning'} fz-12`}>
+                                                {viewingStatement.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="table-responsive bg-light rounded p-3">
+                                        <table className="table table-borderless mb-0">
+                                            <thead>
+                                                <tr className="border-bottom">
+                                                    <th className="fz-14 text-muted pt-0">Course Description</th>
+                                                    <th className="fz-14 text-muted pt-0 text-end">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td className="py-3">
+                                                        <h6 className="fz-16 mb-1">{viewingStatement.course?.title}</h6>
+                                                        <p className="fz-14 mb-0 text-muted">{viewingStatement.course?.level} Level • {viewingStatement.course?.lessons?.length || 0} Lessons</p>
+                                                    </td>
+                                                    <td className="py-3 text-end fw-600 fz-18">₹{viewingStatement.amount}</td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr className="border-top">
+                                                    <td className="pt-3 fw-700 fz-18">Total Amount</td>
+                                                    <td className="pt-3 text-end fw-700 fz-20 text-primary">₹{viewingStatement.amount}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    {viewingStatement.notes && (
+                                        <div className="mt-4">
+                                            <p className="mb-1 text-muted fz-14">Notes</p>
+                                            <p className="fz-14 p-2 bg-light rounded">{viewingStatement.notes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-4">
+                                    <p className="text-muted">No statement data available.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer border-top px-4 py-3">
+                            <button type="button" className="lg-white-btn" onClick={() => setShowStatementModal(false)}>
+                                Close
+                            </button>
+                            <button type="button" className="sm-thm-btn" onClick={() => window.print()}>
+                                <FontAwesomeIcon icon={faDownload} className="me-2" />
+                                Print / Download PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {showStatementModal && <div className="modal-backdrop fade show"></div>}
         </>
     )
 }

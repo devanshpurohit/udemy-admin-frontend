@@ -5,9 +5,11 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getCertificates, generateCertificate, deleteCertificate, updateCertificate, revokeCertificate } from "../../services/certificateService";
+import { getStudents } from "../../services/studentService";
+import { getCourseList } from "../../services/courseService";
 
 // Add cache-busting timestamp
 const CACHE_BUSTER = new Date().getTime();
@@ -21,22 +23,49 @@ function Certificate() {
     const [sortBy, setSortBy] = useState('issuedAt'); // 'issuedAt', 'courseTitle'
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive' (show all by default)
+    const [searchTerm, setSearchTerm] = useState('');
+    const debounceTimeoutRef = useRef(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewingCertificate, setViewingCertificate] = useState(null);
+    const [students, setStudents] = useState([]);
+    const [courses, setCourses] = useState([]);
     const [formData, setFormData] = useState({
+        studentId: '',
+        courseId: '',
         student: '',
         course: '',
         instructor: '',
         courseTitle: '',
-        duration: '',
-        score: '',
+        studentName: '',
         template: 'modern',
         completedAt: new Date().toISOString().split('T')[0]
     });
     const [editingCertificate, setEditingCertificate] = useState(null);
 
+    // Fetch initial data
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const [studentsRes, coursesRes] = await Promise.all([
+                    getStudents({ limit: 1000 }),
+                    getCourseList()
+                ]);
+                
+                if (studentsRes.success) {
+                    setStudents(studentsRes.data.students || []);
+                }
+                if (coursesRes.success) {
+                    setCourses(coursesRes.data || []);
+                }
+            } catch (err) {
+                console.error('Error fetching initial data:', err);
+            }
+        };
+        fetchInitialData();
+    }, []);
+
     // Fetch certificates
-    const fetchCertificates = async () => {
+    const fetchCertificates = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -47,7 +76,8 @@ function Certificate() {
                 sortBy: sortBy,
                 sortOrder: sortOrder,
                 limit: 50, // Increased limit to fetch more certificates
-                // Don't filter by status - fetch all certificates
+                search: searchTerm,
+                status: statusFilter !== 'all' ? statusFilter : undefined
             });
             console.log('📥 Certificates API response:', response);
             if (response.success) {
@@ -62,26 +92,72 @@ function Certificate() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sortBy, sortOrder, statusFilter, searchTerm]);
 
     // Fetch certificates on component mount and when sorting/filtering changes
     useEffect(() => {
         fetchCertificates();
-    }, [sortBy, sortOrder, statusFilter]);
+    }, [sortBy, sortOrder, statusFilter, fetchCertificates]);
+
+    // Handle search change with debouncing
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchTerm(query);
+
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+            fetchCertificates();
+        }, 500);
+    };
+
+    // Handle search submit
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        fetchCertificates();
+    };
 
     // Handle input change
     const handleInputChange = (e) => {
-        setFormData({
+        const { name, value } = e.target;
+        
+        let updatedFormData = {
             ...formData,
-            [e.target.name]: e.target.value
-        });
+            [name]: value
+        };
+
+        // If courseId changed, update courseTitle automatically
+        if (name === 'courseId') {
+            const selectedCourse = courses.find(c => c._id === value);
+            if (selectedCourse) {
+                updatedFormData.courseTitle = selectedCourse.title;
+            }
+        }
+
+        // If studentId changed, update studentName automatically
+        if (name === 'studentId') {
+            const selectedStudent = students.find(s => s._id === value);
+            if (selectedStudent) {
+                const name = `${selectedStudent.profile?.firstName || ''} ${selectedStudent.profile?.lastName || ''}`.trim() || selectedStudent.username;
+                updatedFormData.studentName = name;
+            }
+        }
+
+        setFormData(updatedFormData);
     };
 
     // Handle form submit
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!formData.studentId || !formData.courseId) {
+            toast.error('Please select a student and a course');
+            return;
+        }
+
         console.log('🚀 Form submitted with data:', formData);
-        console.log('🚀 Editing certificate:', editingCertificate);
         
         try {
             if (editingCertificate) {
@@ -106,12 +182,13 @@ function Certificate() {
             
             // Reset form and close modal
             setFormData({ 
+                studentId: '',
+                courseId: '',
                 student: '', 
                 course: '', 
                 instructor: '',
                 courseTitle: '',
-                duration: '',
-                score: '',
+                studentName: '',
                 template: 'modern',
                 completedAt: new Date().toISOString().split('T')[0]
             });
@@ -133,8 +210,7 @@ function Certificate() {
             course: certificate.course?._id || '',
             instructor: certificate.instructor?._id || '',
             courseTitle: certificate.courseTitle,
-            duration: certificate.duration,
-            score: certificate.score || '',
+            studentName: certificate.studentName || '',
             template: certificate.template,
             completedAt: certificate.completedAt?.split('T')[0] || new Date().toISOString().split('T')[0]
         });
@@ -258,9 +334,12 @@ function Certificate() {
         type="text"
         className="form-control search-table-frm pe-5"
         placeholder="Search certificates..."
+        value={searchTerm}
+        onChange={handleSearchChange}
+        onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
       />
       <div className="adm-search-bx">
-        <button className="filter-btn">
+        <button className="filter-btn" onClick={handleSearchSubmit}>
           <FontAwesomeIcon icon={faSearch} />
         </button>
       </div>
@@ -384,9 +463,7 @@ function Certificate() {
                                             <th>Date</th>
                                             <th>Certificate ID</th>
                                             <th>Course Title</th>
-                                            <th>Duration</th>
-                                            <th>Score</th>
-                                            <th>Status</th>
+                                            <th>Received by</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
@@ -412,16 +489,7 @@ function Certificate() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            certificates
-                                                .filter(certificate => {
-                                                    // Filter by dropdown selection
-                                                    if (statusFilter === 'all') return true; // Show all (active + inactive + revoked)
-                                                    if (statusFilter === 'active' && certificate.status !== 'active') return false;
-                                                    if (statusFilter === 'inactive' && certificate.status !== 'inactive') return false;
-                                                    
-                                                    return true;
-                                                })
-                                                .map((certificate, index) => {
+                                            certificates.map((certificate, index) => {
                                                 console.log(`🔍 Rendering certificate ${index}:`, certificate);
                                                 console.log(`🔍 Status for certificate ${index}:`, certificate.isRevoked);
                                                 return (
@@ -433,15 +501,7 @@ function Certificate() {
                                                         <td>
                                                             <span className="badge bg-primary text-white">{certificate.courseTitle}</span>
                                                         </td>
-                                                        <td>{certificate.duration}</td>
-                                                        <td>
-                                                            {certificate.score && <span className="badge bg-info text-white">{certificate.score}%</span>}
-                                                        </td>
-                                                        <td>
-                                                        <span className={`badge bg-${certificate.status === 'active' ? 'success' : certificate.status === 'inactive' ? 'warning' : certificate.status === 'revoked' ? 'danger' : 'secondary'} text-white`}>
-                                                            {certificate.status === 'active' ? 'Active' : certificate.status === 'inactive' ? 'Inactive' : certificate.status === 'revoked' ? 'Revoked' : certificate.status}
-                                                        </span>
-                                                    </td>
+                                                        <td>{certificate.studentName || 'N/A'}</td>
                                                         <td>
                                                             <div className="dropdown">
                                                                 <a
@@ -539,50 +599,46 @@ function Certificate() {
                                 <div className="row">
                                     <div className="col-lg-6">
                                         <div className="custom-frm-bx">
-                                            <label htmlFor="courseTitle">Course Title</label>
-                                            <input 
-                                                type="text" 
-                                                name="courseTitle"
-                                                id="courseTitle"
+                                            <label htmlFor="courseId">Course</label>
+                                            <select 
+                                                name="courseId"
+                                                id="courseId"
                                                 className="form-control" 
-                                                placeholder="Enter Course Title"
-                                                value={formData.courseTitle}
+                                                value={formData.courseId}
                                                 onChange={handleInputChange}
                                                 required
-                                            />
+                                            >
+                                                <option value="">Select Course</option>
+                                                {courses.map(course => (
+                                                    <option key={course._id} value={course._id}>
+                                                        {course.title}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
 
                                         <div className="custom-frm-bx">
-                                            <label htmlFor="duration">Duration</label>
-                                            <input 
-                                                type="text" 
-                                                name="duration"
-                                                id="duration"
+                                            <label htmlFor="studentId">Student</label>
+                                            <select 
+                                                name="studentId"
+                                                id="studentId"
                                                 className="form-control" 
-                                                placeholder="e.g., 6 weeks, 30 hours"
-                                                value={formData.duration}
+                                                value={formData.studentId}
                                                 onChange={handleInputChange}
                                                 required
-                                            />
+                                            >
+                                                <option value="">Select Student</option>
+                                                {students.map(student => (
+                                                    <option key={student._id} value={student._id}>
+                                                        {`${student.profile?.firstName || ''} ${student.profile?.lastName || ''}`.trim() || student.username} ({student.email})
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 
                                     <div className="col-lg-6">
                                         
-                                        <div className="custom-frm-bx">
-                                            <label htmlFor="score">Score (%)</label>
-                                            <input 
-                                                type="number" 
-                                                name="score"
-                                                id="score"
-                                                className="form-control" 
-                                                placeholder="0-100"
-                                                value={formData.score}
-                                                onChange={handleInputChange}
-                                                min="0"
-                                                max="100"
-                                            />
-                                        </div>
 
                                         <div className="custom-frm-bx">
                                             <label htmlFor="template">Template</label>
@@ -646,7 +702,7 @@ function Certificate() {
                                 <div className="row">
                                     <div className="col-lg-6">
                                         <div className="custom-frm-bx">
-                                            <label htmlFor="studentName">Student Name</label>
+                                            <label htmlFor="studentName">Received by</label>
                                             <input 
                                                 type="text" 
                                                 name="studentName"
@@ -684,38 +740,6 @@ function Certificate() {
                                                 value={formData.instructorName}
                                                 onChange={handleInputChange}
                                                 required
-                                            />
-                                        </div>
-
-                                        <div className="custom-frm-bx">
-                                            <label htmlFor="duration">Duration</label>
-                                            <input 
-                                                type="text" 
-                                                name="duration"
-                                                id="duration"
-                                                className="form-control" 
-                                                placeholder="e.g., 6 weeks, 30 hours"
-                                                value={formData.duration}
-                                                onChange={handleInputChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="col-lg-6">
-                                        
-                                        <div className="custom-frm-bx">
-                                            <label htmlFor="score">Score (%)</label>
-                                            <input 
-                                                type="number" 
-                                                name="score"
-                                                id="score"
-                                                className="form-control" 
-                                                placeholder="0-100"
-                                                value={formData.score}
-                                                onChange={handleInputChange}
-                                                min="0"
-                                                max="100"
                                             />
                                         </div>
 
@@ -793,32 +817,8 @@ function Certificate() {
                                                         <td>{viewingCertificate.courseTitle}</td>
                                                     </tr>
                                                     <tr>
-                                                        <td><strong>Duration:</strong></td>
-                                                        <td>{viewingCertificate.duration}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Score:</strong></td>
-                                                        <td>{viewingCertificate.score ? `${viewingCertificate.score}%` : 'N/A'}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Template:</strong></td>
-                                                        <td>{viewingCertificate.template}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Completion Date:</strong></td>
-                                                        <td>{formatDate(viewingCertificate.completedAt)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Issued Date:</strong></td>
-                                                        <td>{formatDate(viewingCertificate.issuedAt)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td><strong>Status:</strong></td>
-                                                        <td>
-                                                            <span className={`badge bg-${viewingCertificate.status === 'active' ? 'success' : viewingCertificate.status === 'inactive' ? 'warning' : viewingCertificate.status === 'revoked' ? 'danger' : 'secondary'} text-white`}>
-                                                                {viewingCertificate.status === 'active' ? 'Active' : viewingCertificate.status === 'inactive' ? 'Inactive' : viewingCertificate.status === 'revoked' ? 'Revoked' : viewingCertificate.status}
-                                                            </span>
-                                                        </td>
+                                                        <td><strong>Received by:</strong></td>
+                                                        <td>{viewingCertificate.studentName || 'N/A'}</td>
                                                     </tr>
                                                 </tbody>
                                             </table>

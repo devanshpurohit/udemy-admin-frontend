@@ -22,6 +22,8 @@ import StudentProfile from './Componets/Pages/StudentProfile';
 import Profile from './Componets/Pages/Profile';
 import LiveChat from "./Componets/Pages/AIChat";
 import AICardGenerator from './Componets/Pages/AICardGenerator';
+import SiteSettings from './Componets/Pages/SiteSettings';
+import NewsletterSubscribers from './Componets/Pages/NewsletterSubscribers';
 import Login from './Componets/Auth/Login';
 import ForgotPassword from './Componets/Auth/ForgotPassword';
 import Otp from './Componets/Auth/Otp';
@@ -140,6 +142,14 @@ const router = createBrowserRouter([
       {
         path: "/ai-card-generator",
         element: <AICardGenerator />,
+      },
+      {
+        path: "/site-settings",
+        element: <SiteSettings />,
+      },
+      {
+        path: "/newsletter",
+        element: <NewsletterSubscribers />,
       },
     ],
   },

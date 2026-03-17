@@ -4,7 +4,7 @@ import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FaFileAlt } from "react-icons/fa";
 import { MdQuiz } from "react-icons/md";
-import { getCourseDraft, saveCourseContent } from "../../services/courseService";
+import { getCourseDraft, saveCourseContent, updateSection, deleteSection, updateLessonInSection, deleteLessonFromSection, updateQuiz, deleteQuiz } from "../../services/courseService";
 
 function CourseContent() {
     const navigate = useNavigate();
@@ -37,6 +37,23 @@ function CourseContent() {
         options: ['', ''],
         correctAnswer: 0
     });
+
+    // Edit State
+    const [editMode, setEditMode] = useState({
+        type: null, // 'section', 'lesson', 'quiz'
+        sectionId: null,
+        lessonId: null,
+        id: null
+    });
+
+    const resetForms = () => {
+        setSectionForm({ title: '', description: '' });
+        setLessonForm({ title: '', description: '', videoUrl: '', duration: 30, isPreview: false });
+        setQuizForm({ question: '', options: ['', ''], correctAnswer: 0 });
+        setEditMode({ type: null, sectionId: null, lessonId: null, id: null });
+        setSelectedVideoFile(null);
+        setVideoSourceType('url');
+    };
     
     // Video Upload State
     const [videoSourceType, setVideoSourceType] = useState('url'); // 'url' or 'upload'
@@ -67,33 +84,68 @@ function CourseContent() {
         }
     };
 
-    // Add Section
+    // Add/Update Section
     const handleAddSection = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(sectionForm)
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setSections([...sections, data.data.section]);
-                setSectionForm({ title: '', description: '' });
-                setShowAddSection(false);
-                setSuccess('Section added successfully!');
+            let response;
+            if (editMode.type === 'section') {
+                response = await updateSection(courseId, editMode.id, sectionForm);
             } else {
-                setError(data.message || 'Failed to add section');
+                const token = localStorage.getItem('token');
+                const fetchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(sectionForm)
+                });
+                response = await fetchRes.json();
+            }
+
+            if (response.success) {
+                if (editMode.type === 'section') {
+                    setSections(sections.map(s => s._id === editMode.id ? response.data.section : s));
+                    setSuccess('Section updated successfully!');
+                } else {
+                    setSections([...sections, response.data.section]);
+                    setSuccess('Section added successfully!');
+                }
+                resetForms();
+                setShowAddSection(false);
+            } else {
+                setError(response.message || 'Operation failed');
             }
         } catch (err) {
-            setError('Failed to add section');
+            setError('Operation failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEditSection = (section) => {
+        setEditMode({ type: 'section', id: section._id, sectionId: null, lessonId: null });
+        setSectionForm({ title: section.title, description: section.description || '' });
+        setShowAddSection(true);
+    };
+
+    const handleDeleteSection = async (sectionId) => {
+        if (window.confirm('Are you sure you want to delete this section? All lessons and quizzes in it will be removed.')) {
+            try {
+                setLoading(true);
+                const response = await deleteSection(courseId, sectionId);
+                if (response.success) {
+                    setSections(sections.filter(s => s._id !== sectionId));
+                    setSuccess('Section deleted successfully!');
+                } else {
+                    setError(response.message || 'Delete failed');
+                }
+            } catch (err) {
+                setError('Delete failed');
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -156,116 +208,144 @@ function CourseContent() {
 
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
             const dataToSubmit = { ...lessonForm, videoUrl: finalVideoUrl };
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(dataToSubmit)
-            });
-
-            const data = await response.json();
+            let response;
+            if (editMode.type === 'lesson') {
+                response = await updateLessonInSection(courseId, selectedSection, editMode.id, dataToSubmit);
+            } else {
+                const token = localStorage.getItem('token');
+                const fetchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(dataToSubmit)
+                });
+                response = await fetchRes.json();
+            }
             
-            if (data.success) {
+            if (response.success) {
                 const updatedSections = sections.map(section => {
                     if (section._id === selectedSection) {
-                        return { ...section, lessons: [...section.lessons, data.data.lesson] };
+                        if (editMode.type === 'lesson') {
+                            return { ...section, lessons: section.lessons.map(l => l._id === editMode.id ? response.data.lesson : l) };
+                        }
+                        return { ...section, lessons: [...section.lessons, response.data.lesson] };
                     }
                     return section;
                 });
                 setSections(updatedSections);
-                setLessonForm({ title: '', description: '', videoUrl: '', duration: 30, isPreview: false });
-                setSelectedVideoFile(null);
-                setVideoSourceType('url');
+                resetForms();
                 setShowAddLesson(false);
                 setSelectedSection(null);
-                setSuccess('Lesson added successfully!');
+                setSuccess(`Lesson ${editMode.type === 'lesson' ? 'updated' : 'added'} successfully!`);
             } else {
-                setError(data.message || 'Failed to add lesson');
+                setError(response.message || 'Operation failed');
             }
         } catch (err) {
             console.error('Add lesson error:', err);
-            setError('Failed to add lesson');
+            setError('Operation failed');
         } finally {
             setLoading(false);
         }
     };
 
-    // Add Quiz to Lesson
+    const handleEditLesson = (sectionId, lesson) => {
+        setSelectedSection(sectionId);
+        setEditMode({ type: 'lesson', id: lesson._id, sectionId, lessonId: null });
+        setLessonForm({
+            title: lesson.title,
+            description: lesson.description || '',
+            videoUrl: lesson.videoUrl,
+            duration: lesson.duration,
+            isPreview: lesson.isPreview
+        });
+        setVideoSourceType('url'); // Default to URL for editing
+        setShowAddLesson(true);
+    };
+
+    const handleDeleteLesson = async (sectionId, lessonId) => {
+        if (window.confirm('Are you sure you want to delete this lesson?')) {
+            try {
+                setLoading(true);
+                const response = await deleteLessonFromSection(courseId, sectionId, lessonId);
+                if (response.success) {
+                    setSections(sections.map(s => {
+                        if (s._id === sectionId) {
+                            return { ...s, lessons: s.lessons.filter(l => l._id !== lessonId) };
+                        }
+                        return s;
+                    }));
+                    setSuccess('Lesson deleted successfully!');
+                } else {
+                    setError(response.message || 'Delete failed');
+                }
+            } catch (err) {
+                setError('Delete failed');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    // Add/Update Quiz to Lesson
     const handleAddQuiz = async () => {
         if (!selectedSection || !selectedLesson) {
-            console.error('❌ No section or lesson selected');
             setError('Please select a lesson first');
             return;
         }
         
-        // Validate quiz form data
-        console.log('🔍 Validating quiz form data...');
-        console.log('🔍 question:', quizForm.question, 'trim:', quizForm.question.trim());
-        console.log('🔍 options:', quizForm.options);
-        console.log('🔍 correctAnswer:', quizForm.correctAnswer);
-        
         if (!quizForm.question.trim()) {
-            console.error('❌ Question validation failed');
             setError('Quiz question is required');
             return;
         }
         
         if (!quizForm.options || quizForm.options.length < 2) {
-            console.error('❌ Options validation failed');
             setError('At least 2 options are required');
             return;
         }
         
-        // Check if all options have values
         const emptyOptions = quizForm.options.filter(option => !option.trim());
         if (emptyOptions.length > 0) {
-            console.error('❌ Empty options validation failed');
             setError('All options must have values');
             return;
         }
         
         if (quizForm.correctAnswer === undefined || quizForm.correctAnswer < 0 || quizForm.correctAnswer >= quizForm.options.length) {
-            console.error('❌ Correct answer validation failed');
             setError('Please select a correct answer');
             return;
         }
         
-        console.log('✅ Quiz form validation passed');
-        console.log('🔍 Adding quiz to lesson:', selectedLesson);
-        console.log('🔍 Final quiz form data:', quizForm);
-        
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons/${selectedLesson}/quiz`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(quizForm)
-            });
-
-            console.log('🔍 Quiz response status:', response.status);
-            const data = await response.json();
-            console.log('🔍 Quiz response data:', data);
+            let response;
+            if (editMode.type === 'quiz') {
+                response = await updateQuiz(courseId, selectedSection, selectedLesson, editMode.id, quizForm);
+            } else {
+                const token = localStorage.getItem('token');
+                const fetchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/${courseId}/sections/${selectedSection}/lessons/${selectedLesson}/quiz`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(quizForm)
+                });
+                response = await fetchRes.json();
+            }
             
-            if (data.success) {
-                console.log('✅ Quiz added successfully:', data.data.quiz);
+            if (response.success) {
                 const updatedSections = sections.map(section => {
                     if (section._id === selectedSection) {
                         return {
                             ...section,
                             lessons: section.lessons.map(lesson => {
                                 if (lesson._id === selectedLesson) {
-                                    return {
-                                        ...lesson,
-                                        quizzes: [...lesson.quizzes, data.data.quiz]
-                                    };
+                                    if (editMode.type === 'quiz') {
+                                        return { ...lesson, quizzes: lesson.quizzes.map(q => q._id === editMode.id ? response.data.quiz : q) };
+                                    }
+                                    return { ...lesson, quizzes: [...lesson.quizzes, response.data.quiz] };
                                 }
                                 return lesson;
                             })
@@ -273,22 +353,64 @@ function CourseContent() {
                     }
                     return section;
                 });
-                console.log('🔍 Updated sections with quiz:', updatedSections);
                 setSections(updatedSections);
-                setQuizForm({ question: '', options: ['', ''], correctAnswer: 0 });
+                resetForms();
                 setShowAddQuiz(false);
                 setSelectedSection(null);
                 setSelectedLesson(null);
-                setSuccess('Quiz added successfully!');
+                setSuccess(`Quiz ${editMode.type === 'quiz' ? 'updated' : 'added'} successfully!`);
             } else {
-                console.error('❌ Failed to add quiz:', data.message);
-                setError(data.message || 'Failed to add quiz');
+                setError(response.message || 'Operation failed');
             }
         } catch (err) {
-            console.error('❌ Add quiz error:', err);
-            setError('Failed to add quiz');
+            console.error('Add quiz error:', err);
+            setError('Operation failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEditQuiz = (sectionId, lessonId, quiz) => {
+        setSelectedSection(sectionId);
+        setSelectedLesson(lessonId);
+        setEditMode({ type: 'quiz', id: quiz._id, sectionId, lessonId });
+        setQuizForm({
+            question: quiz.question,
+            options: [...quiz.options],
+            correctAnswer: quiz.correctAnswer
+        });
+        setShowAddQuiz(true);
+    };
+
+    const handleDeleteQuiz = async (sectionId, lessonId, quizId) => {
+        if (window.confirm('Are you sure you want to delete this quiz?')) {
+            try {
+                setLoading(true);
+                const response = await deleteQuiz(courseId, sectionId, lessonId, quizId);
+                if (response.success) {
+                    setSections(sections.map(s => {
+                        if (s._id === sectionId) {
+                            return {
+                                ...s,
+                                lessons: s.lessons.map(l => {
+                                    if (l._id === lessonId) {
+                                        return { ...l, quizzes: l.quizzes.filter(q => q._id !== quizId) };
+                                    }
+                                    return l;
+                                })
+                            };
+                        }
+                        return s;
+                    }));
+                    setSuccess('Quiz deleted successfully!');
+                } else {
+                    setError(response.message || 'Delete failed');
+                }
+            } catch (err) {
+                setError('Delete failed');
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -393,7 +515,7 @@ function CourseContent() {
             if (response.success) {
                 console.log('✅ Course content saved successfully');
                 setSuccess('Course content saved successfully!');
-                navigate('/course-pricing/' + courseId);
+                navigate('/course-media/' + courseId);
             } else {
                 console.error('❌ Failed to save course content:', response.message);
                 setError(response.message || 'Failed to save course content');
@@ -550,20 +672,20 @@ function CourseContent() {
                             <h5 className="mb-0">Sections ({sections.length})</h5>
                             <button 
                                 className="lg-thm-btn" 
-                                onClick={() => setShowAddSection(true)}
+                                onClick={() => { resetForms(); setShowAddSection(true); }}
                             >
                                 <FontAwesomeIcon icon={faPlus} /> Add Section
                             </button>
                         </div>
 
-                        {/* Add Section Modal */}
+                        {/* Add/Edit Section Modal */}
                         {showAddSection && (
-                            <div className="card mb-4">
+                            <div className="card mb-4 border-primary">
                                 <div className="card-header d-flex justify-content-between align-items-center">
-                                    <h5 className="mb-0">Add New Section</h5>
+                                    <h5 className="mb-0">{editMode.type === 'section' ? 'Edit Section' : 'Add New Section'}</h5>
                                     <button 
                                         className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => setShowAddSection(false)}
+                                        onClick={() => { resetForms(); setShowAddSection(false); }}
                                     >
                                         <FontAwesomeIcon icon={faClose} />
                                     </button>
@@ -603,11 +725,11 @@ function CourseContent() {
                                             onClick={handleAddSection}
                                             disabled={loading}
                                         >
-                                            {loading ? 'Adding...' : 'Add Section'}
+                                            {loading ? 'Saving...' : (editMode.type === 'section' ? 'Update Section' : 'Add Section')}
                                         </button>
                                         <button 
                                             className="btn btn-secondary"
-                                            onClick={() => setShowAddSection(false)}
+                                            onClick={() => { resetForms(); setShowAddSection(false); }}
                                         >
                                             Cancel
                                         </button>
@@ -628,11 +750,26 @@ function CourseContent() {
                                             <button 
                                                 className="btn btn-sm btn-outline-primary"
                                                 onClick={() => {
+                                                    resetForms();
                                                     setSelectedSection(section._id);
                                                     setShowAddLesson(true);
                                                 }}
                                             >
                                                 <FontAwesomeIcon icon={faPlus} /> Add Lesson
+                                            </button>
+                                            <button 
+                                                className="btn btn-sm btn-outline-info"
+                                                onClick={() => handleEditSection(section)}
+                                                title="Edit Section"
+                                            >
+                                                <FontAwesomeIcon icon={faPencil} />
+                                            </button>
+                                            <button 
+                                                className="btn btn-sm btn-outline-danger"
+                                                onClick={() => handleDeleteSection(section._id)}
+                                                title="Delete Section"
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} />
                                             </button>
                                         </div>
                                     </div>
@@ -667,12 +804,27 @@ function CourseContent() {
                                                             <button 
                                                                 className="btn btn-sm btn-outline-success"
                                                                 onClick={() => {
+                                                                    resetForms();
                                                                     setSelectedSection(section._id);
                                                                     setSelectedLesson(lesson._id);
                                                                     setShowAddQuiz(true);
                                                                 }}
                                                             >
                                                                 <MdQuiz /> Add Quiz
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-sm btn-outline-info"
+                                                                onClick={() => handleEditLesson(section._id, lesson)}
+                                                                title="Edit Lesson"
+                                                            >
+                                                                <FontAwesomeIcon icon={faPencil} />
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-sm btn-outline-danger"
+                                                                onClick={() => handleDeleteLesson(section._id, lesson._id)}
+                                                                title="Delete Lesson"
+                                                            >
+                                                                <FontAwesomeIcon icon={faTrash} />
                                                             </button>
                                                         </div>
                                                     </div>
@@ -683,13 +835,26 @@ function CourseContent() {
                                                             <h6 className="text-muted small">Quizzes:</h6>
                                                             <div className="quiz-list">
                                                                 {lesson.quizzes.map((quiz, quizIndex) => (
-                                                                    <div key={quizIndex} className="quiz-item bg-light rounded p-2 mb-2">
+                                                                    <div key={quiz._id || quizIndex} className="quiz-item bg-light rounded p-2 mb-2">
                                                                         <div className="d-flex justify-content-between align-items-center">
                                                                             <div>
                                                                                 <strong>Q{quizIndex + 1}:</strong> {quiz.question}
                                                                             </div>
-                                                                            <div className="text-muted small">
-                                                                                {quiz.options.length} options
+                                                                            <div className="d-flex gap-2">
+                                                                                <button 
+                                                                                    className="btn btn-link btn-sm p-0 text-info"
+                                                                                    onClick={() => handleEditQuiz(section._id, lesson._id, quiz)}
+                                                                                    title="Edit Quiz"
+                                                                                >
+                                                                                    <FontAwesomeIcon icon={faPencil} />
+                                                                                </button>
+                                                                                <button 
+                                                                                    className="btn btn-link btn-sm p-0 text-danger"
+                                                                                    onClick={() => handleDeleteQuiz(section._id, lesson._id, quiz._id)}
+                                                                                    title="Delete Quiz"
+                                                                                >
+                                                                                    <FontAwesomeIcon icon={faTrash} />
+                                                                                </button>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -705,16 +870,16 @@ function CourseContent() {
                             </div>
                         ))}
 
-                        {/* Add Lesson Modal */}
+                        {/* Add/Edit Lesson Modal */}
                         {showAddLesson && selectedSection && (
-                            <div className="card mb-4">
+                            <div className="card mb-4 border-info">
                                 <div className="card-header d-flex justify-content-between align-items-center">
-                                    <h5 className="mb-0">Add New Lesson</h5>
+                                    <h5 className="mb-0">{editMode.type === 'lesson' ? 'Edit Lesson' : 'Add New Lesson'}</h5>
                                     <button 
                                         className="btn btn-sm btn-outline-secondary"
                                         onClick={() => {
+                                            resetForms();
                                             setShowAddLesson(false);
-                                            setSelectedSection(null);
                                         }}
                                     >
                                         <FontAwesomeIcon icon={faClose} />
@@ -836,14 +1001,11 @@ function CourseContent() {
                                             onClick={handleAddLesson}
                                             disabled={loading || videoUploading}
                                         >
-                                            {videoUploading ? 'Uploading Video...' : loading ? 'Adding Lesson...' : 'Add Lesson'}
+                                            {videoUploading ? 'Uploading Video...' : loading ? 'Saving...' : (editMode.type === 'lesson' ? 'Update Lesson' : 'Add Lesson')}
                                         </button>
                                         <button 
                                             className="btn btn-secondary"
-                                            onClick={() => {
-                                                setShowAddLesson(false);
-                                                setSelectedSection(null);
-                                            }}
+                                            onClick={() => { resetForms(); setShowAddLesson(false); }}
                                         >
                                             Cancel
                                         </button>
@@ -852,18 +1014,14 @@ function CourseContent() {
                             </div>
                         )}
 
-                        {/* Add Quiz Modal */}
+                        {/* Add/Edit Quiz Modal */}
                         {showAddQuiz && selectedSection && selectedLesson && (
-                            <div className="card mb-4">
+                            <div className="card mb-4 border-success">
                                 <div className="card-header d-flex justify-content-between align-items-center">
-                                    <h5 className="mb-0">Add Quiz</h5>
+                                    <h5 className="mb-0">{editMode.type === 'quiz' ? 'Edit Quiz' : 'Add Quiz'}</h5>
                                     <button 
                                         className="btn btn-sm btn-outline-secondary"
-                                        onClick={() => {
-                                            setShowAddQuiz(false);
-                                            setSelectedSection(null);
-                                            setSelectedLesson(null);
-                                        }}
+                                        onClick={() => { resetForms(); setShowAddQuiz(false); }}
                                     >
                                         <FontAwesomeIcon icon={faClose} />
                                     </button>
@@ -886,14 +1044,15 @@ function CourseContent() {
                                         </div>
                                         <div className="col-md-12">
                                             <div className="mb-3">
-                                                <label className="form-label">Options *</label>
+                                                <label className="form-label">Options * (Select radio button for correct answer)</label>
                                                 {quizForm.options.map((option, index) => (
                                                     <div key={index} className="d-flex gap-2 mb-2">
-                                                        <div className="form-check">
+                                                        <div className="form-check pt-1">
                                                             <input
                                                                 type="radio"
                                                                 className="form-check-input"
                                                                 name="correctAnswer"
+                                                                id={`correctAnswer-${index}`}
                                                                 checked={quizForm.correctAnswer === index}
                                                                 onChange={() => setQuizForm({...quizForm, correctAnswer: index})}
                                                             />
@@ -938,15 +1097,11 @@ function CourseContent() {
                                             onClick={handleAddQuiz}
                                             disabled={loading}
                                         >
-                                            {loading ? 'Adding...' : 'Add Quiz'}
+                                            {loading ? 'Saving...' : (editMode.type === 'quiz' ? 'Update Quiz' : 'Add Quiz')}
                                         </button>
                                         <button 
                                             className="btn btn-secondary"
-                                            onClick={() => {
-                                                setShowAddQuiz(false);
-                                                setSelectedSection(null);
-                                                setSelectedLesson(null);
-                                            }}
+                                            onClick={() => { resetForms(); setShowAddQuiz(false); }}
                                         >
                                             Cancel
                                         </button>

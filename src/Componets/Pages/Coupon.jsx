@@ -5,7 +5,7 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getCoupons, createCoupon, deleteCoupon, updateCoupon } from "../../services/couponService";
 
@@ -19,6 +19,8 @@ function Coupon() {
     const [showModal, setShowModal] = useState(false);
     const [sortBy, setSortBy] = useState('createdAt'); // 'createdAt', 'value', 'code'
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
+    const [searchTerm, setSearchTerm] = useState('');
+    const debounceTimeoutRef = useRef(null);
     const [formData, setFormData] = useState({
         code: '',
         description: '',
@@ -29,7 +31,7 @@ function Coupon() {
     const [editingCoupon, setEditingCoupon] = useState(null);
 
     // Fetch coupons with debouncing
-    const fetchCoupons = async () => {
+    const fetchCoupons = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -37,7 +39,8 @@ function Coupon() {
             // Add minimal parameters to avoid rate limiting
             const response = await getCoupons({ 
                 sortBy: sortBy,
-                sortOrder: sortOrder
+                sortOrder: sortOrder,
+                search: searchTerm
             });
             console.log('📥 Coupons API response:', response);
             if (response.success) {
@@ -52,12 +55,32 @@ function Coupon() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sortBy, sortOrder, searchTerm]);
 
     // Fetch coupons on component mount and when sorting changes
     useEffect(() => {
         fetchCoupons();
-    }, [sortBy, sortOrder]);
+    }, [sortBy, sortOrder, fetchCoupons]);
+
+    // Handle search change with debouncing
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchTerm(query);
+
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+            fetchCoupons();
+        }, 500);
+    };
+
+    // Handle search submit
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        fetchCoupons();
+    };
 
     // Handle form submit
     const handleSubmit = async (e) => {
@@ -145,9 +168,6 @@ function Coupon() {
         });
     };
 
-    useEffect(() => {
-        fetchCoupons();
-    }, []);
 
     return (
         <>
@@ -202,9 +222,12 @@ function Coupon() {
                                 type="text"
                                 className="form-control search-table-frm pe-5"
                                 placeholder="Search coupons..."
+                                value={searchTerm}
+                                onChange={handleSearchChange}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
                             />
                             <div className="adm-search-bx">
-                                <button className="filter-btn">
+                                <button className="filter-btn" onClick={handleSearchSubmit}>
                                     <FontAwesomeIcon icon={faSearch} />
                                 </button>
                             </div>

@@ -5,7 +5,7 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getAnnouncements, createAnnouncement, deleteAnnouncement, updateAnnouncement, toggleAnnouncementStatus } from "../../services/announcementService";
 
@@ -21,11 +21,11 @@ function Announcement() {
     const [sortBy, setSortBy] = useState('createdAt'); // 'createdAt', 'title', 'priority'
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'published', 'draft', 'archive'
+    const [searchTerm, setSearchTerm] = useState('');
+    const debounceTimeoutRef = useRef(null);
     const [formData, setFormData] = useState({
         title: '',
         content: '',
-        type: 'general',
-        priority: 'medium',
         targetAudience: 'all',
         isActive: true,
         status: 'published' // 'published', 'draft', 'archive'
@@ -33,7 +33,7 @@ function Announcement() {
     const [editingAnnouncement, setEditingAnnouncement] = useState(null);
 
     // Fetch announcements
-    const fetchAnnouncements = async () => {
+    const fetchAnnouncements = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -43,7 +43,8 @@ function Announcement() {
                 v: '1.0.0', // Version parameter
                 sortBy: sortBy,
                 sortOrder: sortOrder,
-                status: statusFilter === 'all' ? undefined : statusFilter
+                status: statusFilter === 'all' ? undefined : statusFilter,
+                search: searchTerm
             });
             console.log('📥 Announcements API response:', response);
             if (response.success) {
@@ -60,12 +61,32 @@ function Announcement() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sortBy, sortOrder, statusFilter, searchTerm]);
 
     // Fetch announcements on component mount and when sorting/filtering changes
     useEffect(() => {
         fetchAnnouncements();
-    }, [sortBy, sortOrder, statusFilter]);
+    }, [sortBy, sortOrder, statusFilter, fetchAnnouncements]);
+
+    // Handle search change with debouncing
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchTerm(query);
+
+        if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current);
+        }
+
+        debounceTimeoutRef.current = setTimeout(() => {
+            fetchAnnouncements();
+        }, 500);
+    };
+
+    // Handle search submit
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        fetchAnnouncements();
+    };
 
     // Handle input change
     const handleInputChange = (e) => {
@@ -109,8 +130,6 @@ function Announcement() {
             setFormData({ 
                 title: '', 
                 content: '', 
-                type: 'general', 
-                priority: 'medium', 
                 targetAudience: 'all',
                 isActive: true,
                 status: 'published'
@@ -131,8 +150,6 @@ function Announcement() {
         setFormData({
             title: announcement.title,
             content: announcement.content,
-            type: announcement.type,
-            priority: announcement.priority,
             targetAudience: announcement.targetAudience,
             isActive: announcement.isActive,
             status: announcement.status || 'published'
@@ -244,9 +261,12 @@ function Announcement() {
         type="text"
         className="form-control search-table-frm pe-5"
         placeholder="Search announcements..."
+        value={searchTerm}
+        onChange={handleSearchChange}
+        onKeyPress={(e) => e.key === 'Enter' && handleSearchSubmit()}
       />
       <div className="adm-search-bx">
-        <button className="filter-btn">
+        <button className="filter-btn" onClick={handleSearchSubmit}>
           <FontAwesomeIcon icon={faSearch} />
         </button>
       </div>
@@ -269,8 +289,6 @@ function Announcement() {
           Sort by{" "}
           {sortBy === "title"
             ? "Title"
-            : sortBy === "priority"
-            ? "Priority"
             : sortBy === "status"
             ? "Status"
             : "Date"}{" "}
@@ -302,12 +320,7 @@ function Announcement() {
             </a>
           </li>
 
-          <li className="prescription-item">
-            <a href="#" className="prescription-nav"
-              onClick={() => {setSortBy('priority'); setSortOrder('desc');}}>
-              Priority (High to Low)
-            </a>
-          </li>
+
 
           <li className="prescription-item">
             <a href="#" className="prescription-nav"
@@ -384,8 +397,6 @@ function Announcement() {
                                         <tr>
                                             <th>Date</th>
                                             <th>Announcements</th>
-                                            <th>Type</th>
-                                            <th>Priority</th>
                                             <th>Status</th>
                                             <th>Action</th>
                                         </tr>
@@ -429,14 +440,7 @@ function Announcement() {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <span className="badge bg-info text-white">{announcement.type}</span>
-                                                        </td>
-                                                        <td>
-                                                            <span className={`badge bg-${announcement.priority === 'urgent' ? 'danger' : announcement.priority === 'high' ? 'warning' : announcement.priority === 'medium' ? 'info' : 'secondary'} text-white`}>
-                                                                {announcement.priority}
-                                                            </span>
-                                                        </td>
+
                                                         <td>
                                                             <span className={`badge bg-${announcement.status === 'published' ? 'success' : announcement.status === 'draft' ? 'warning' : 'secondary'} text-white`}>
                                                                 {announcement.status === 'published' ? 'Published' : announcement.status === 'draft' ? 'Draft' : 'Archive'}
@@ -555,38 +559,7 @@ function Announcement() {
                                 />
                             </div>
 
-                            {/* Type */}
-                            <div className="custom-frm-bx">
-                                <label>Type</label>
-                                <select
-                                    name="type"
-                                    className="form-control"
-                                    value={formData.type}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="general">General</option>
-                                    <option value="course_update">Course Update</option>
-                                    <option value="system_maintenance">System Maintenance</option>
-                                    <option value="new_feature">New Feature</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
 
-                            {/* Priority */}
-                            <div className="custom-frm-bx">
-                                <label>Priority</label>
-                                <select
-                                    name="priority"
-                                    className="form-control"
-                                    value={formData.priority}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
 
                             {/* Status */}
                             <div className="custom-frm-bx">
@@ -702,36 +675,7 @@ function Announcement() {
                                 />
                             </div>
 
-                            <div className="custom-frm-bx">
-                                <label>Type</label>
-                                <select
-                                    name="type"
-                                    className="form-control"
-                                    value={formData.type}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="general">General</option>
-                                    <option value="course_update">Course Update</option>
-                                    <option value="system_maintenance">System Maintenance</option>
-                                    <option value="new_feature">New Feature</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
 
-                            <div className="custom-frm-bx">
-                                <label>Priority</label>
-                                <select
-                                    name="priority"
-                                    className="form-control"
-                                    value={formData.priority}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
 
                             <div className="d-flex justify-content-end gap-2 mt-4">
                                 <button

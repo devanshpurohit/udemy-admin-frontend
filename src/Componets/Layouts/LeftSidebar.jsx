@@ -148,6 +148,24 @@ function LeftSidebar() {
                             </li>
 
                             <li className="nav-item">
+                                <NavLink to="/site-settings" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <IoSettingsSharp className="fa-lg" />
+                                    Generate Logo & Content
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
+                                <NavLink to="/newsletter" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <IoSettingsSharp className="fa-lg" />
+                                    Subscribe Newsletter
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
                                 <NavLink to="/setting" className={({ isActive }) =>
                                     `nav-link ${isActive ? "active-nav" : ""}`
                                 }>

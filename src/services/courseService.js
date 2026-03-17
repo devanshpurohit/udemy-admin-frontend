@@ -206,3 +206,70 @@ export const uploadVideo = async (courseId, lessonId, file) => {
     throw error;
   }
 };
+
+// Section operations
+export const updateSection = async (courseId, sectionId, sectionData) => {
+  try {
+    const response = await api.put(`/courses/${courseId}/sections/${sectionId}`, sectionData);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteSection = async (courseId, sectionId) => {
+  try {
+    const response = await api.delete(`/courses/${courseId}/sections/${sectionId}`);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Lesson operations in sections
+export const updateLessonInSection = async (courseId, sectionId, lessonId, lessonData) => {
+  try {
+    const response = await api.put(`/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`, lessonData);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteLessonFromSection = async (courseId, sectionId, lessonId) => {
+  try {
+    const response = await api.delete(`/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Quiz operations
+export const updateQuiz = async (courseId, sectionId, lessonId, quizId, quizData) => {
+  try {
+    const response = await api.put(`/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/quiz/${quizId}`, quizData);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteQuiz = async (courseId, sectionId, lessonId, quizId) => {
+  try {
+    const response = await api.delete(`/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}/quiz/${quizId}`);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get course list (ID and Title)
+export const getCourseList = async () => {
+  try {
+    const response = await api.get('/courses/list');
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};

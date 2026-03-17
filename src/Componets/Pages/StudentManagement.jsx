@@ -7,7 +7,9 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { MdChevronLeft } from "react-icons/md";
 import { MdChevronRight } from "react-icons/md";
 import { NavLink } from "react-router-dom";
+import boyImg from '../../assets/images/boy.png';
 import { getStudents, deleteStudent } from "../../services/studentService";
+import { getCourseList } from "../../services/courseService";
 
 function StudentManagement() {
     const [students, setStudents] = useState([]);
@@ -19,6 +21,22 @@ function StudentManagement() {
     const [totalPages, setTotalPages] = useState(1);
     const [selectedCourse, setSelectedCourse] = useState('All');
     const [selectedProgress, setSelectedProgress] = useState('All');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortOrder, setSortOrder] = useState('desc');
+    const [courseList, setCourseList] = useState([]);
+
+    // Fetch dynamic courses
+    const fetchCourseList = async () => {
+        try {
+            const response = await getCourseList();
+            if (response.success) {
+                setCourseList(response.data || []);
+            }
+        } catch (err) {
+            console.error('Error fetching course list:', err);
+        }
+    };
 
     // Fetch students
     const fetchStudents = async () => {
@@ -29,9 +47,11 @@ function StudentManagement() {
             const params = {
                 page: currentPage,
                 limit: 20,
-                search: searchTerm || undefined,
+                search: debouncedSearchTerm || undefined,
                 course: selectedCourse !== 'All' ? selectedCourse : undefined,
-                progress: selectedProgress !== 'All' ? selectedProgress : undefined
+                progress: selectedProgress !== 'All' ? selectedProgress : undefined,
+                sortBy,
+                sortOrder
             };
             
             const response = await getStudents(params);
@@ -99,12 +119,18 @@ function StudentManagement() {
 
     // Get student image
     const getStudentImage = (student) => {
-        if (student.profile?.profileImage) {
-            return student.profile.profileImage.startsWith('http') 
-                ? student.profile.profileImage 
-                : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'https://udemy-latest-backend-1.onrender.com'}${student.profile.profileImage}`;
+        const image = student.profile?.profileImage;
+        if (!image || image.includes('picsum.photos') || image.includes('boy.png')) return boyImg;
+        
+        // If it's a base64 string or a full URL, return as is
+        if (image.startsWith('data:') || image.startsWith('http')) {
+            return image;
         }
-        return "http://localhost:5173/src/assets/images/admin-usr.png";
+        
+        // Otherwise, construct full URL using base URL
+        const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || '';
+        const cleanImage = image.startsWith('/') ? image : `/${image}`;
+        return `${baseUrl}${cleanImage}`;
     };
 
     // Get student name
@@ -122,20 +148,25 @@ function StudentManagement() {
 
     // Get enrolled course
     const getEnrolledCourse = (student) => {
-        if (student.studentDetails?.enrolledCourses && student.studentDetails.enrolledCourses.length > 0) {
-            const course = student.studentDetails.enrolledCourses[0];
-            return course.course?.title || 'Unknown Course';
-        }
-        return 'No Course';
+        const courses = student.studentDetails?.enrolledCourses || [];
+        if (courses.length === 0) return 'No Course';
+        
+        const titles = courses
+            .filter(c => c.course && c.course.title)
+            .map(c => c.course.title);
+        
+        if (titles.length === 0) return `${courses.length} Course${courses.length > 1 ? 's' : ''}`;
+        
+        if (titles.length <= 2) return titles.join(', ');
+        return `${titles[0]}, ${titles[1]} +${titles.length - 2} more`;
     };
 
     // Get progress
     const getProgress = (student) => {
-        if (student.studentDetails?.enrolledCourses && student.studentDetails.enrolledCourses.length > 0) {
-            const course = student.studentDetails.enrolledCourses[0];
-            return course.progress || 0;
-        }
-        return 0;
+        const courses = student.studentDetails?.enrolledCourses || [];
+        if (courses.length === 0) return 0;
+        const totalProgress = courses.reduce((acc, curr) => acc + (curr.progress || 0), 0);
+        return Math.round(totalProgress / courses.length);
     };
 
     // Get last activity
@@ -160,8 +191,22 @@ function StudentManagement() {
 
     // Effects
     useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]);
+
+    useEffect(() => {
+        fetchCourseList();
+    }, []);
+
+    useEffect(() => {
         fetchStudents();
-    }, [currentPage, searchTerm, selectedCourse, selectedProgress]);
+    }, [currentPage, debouncedSearchTerm, selectedCourse, selectedProgress, sortBy, sortOrder]);
 
     return (
         <>
@@ -203,7 +248,7 @@ function StudentManagement() {
         onChange={(e) => setSearchTerm(e.target.value)}
       />
       <div className="adm-search-bx">
-        <button className="filter-btn" onClick={fetchStudents}>
+        <button className="filter-btn" onClick={() => { setDebouncedSearchTerm(searchTerm); fetchStudents(); }}>
           <FontAwesomeIcon icon={faSearch} />
         </button>
       </div>
@@ -211,34 +256,59 @@ function StudentManagement() {
   </div>
 
   {/* RIGHT — Filters */}
-  <div className="col-lg-4 mb-2">
+  <div className="col-lg-8 mb-2">
     <div className="d-flex justify-content-end gap-2">
 
-      <div className="custom-frm-bx" style={{ width: "160px" }}>
-        <select
-          className="form-control"
-          value={selectedCourse}
-          onChange={(e) => setSelectedCourse(e.target.value)}
+      <div className="dropdown">
+        <a
+          href="javascript:void(0)"
+          className="lg-white-btn dropdown-toggle"
+          id="sortDropdown"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
         >
-          <option value="All">Courses</option>
-          <option value="Web Development">Web Development</option>
-          <option value="UI/UX">UI/UX</option>
-          <option value="APP Development">APP Development</option>
-        </select>
+          Sort by {sortBy === 'profile.firstName' ? 'Name' : sortBy === 'createdAt' ? 'Date' : 'Progress'} ({sortOrder === 'asc' ? '↑' : '↓'})
+        </a>
+        <ul className="dropdown-menu dropdown-menu-end tble-action-menu admin-dropdown-card" aria-labelledby="sortDropdown">
+          <li className="prescription-item">
+            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('desc'); }}>Date (Newest)</a>
+          </li>
+          <li className="prescription-item">
+            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('createdAt'); setSortOrder('asc'); }}>Date (Oldest)</a>
+          </li>
+          <li className="prescription-item">
+            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('profile.firstName'); setSortOrder('asc'); }}>Name (A-Z)</a>
+          </li>
+          <li className="prescription-item">
+            <a href="#" className="prescription-nav" onClick={(e) => { e.preventDefault(); setSortBy('profile.firstName'); setSortOrder('desc'); }}>Name (Z-A)</a>
+          </li>
+        </ul>
       </div>
 
-      <div className="custom-frm-bx" style={{ width: "160px" }}>
-        <select
-          className="form-control"
-          value={selectedProgress}
-          onChange={(e) => setSelectedProgress(e.target.value)}
-        >
-          <option value="All">Progress</option>
-          <option value="10-20">10-20%</option>
-          <option value="20-30">20-30%</option>
-          <option value="30-40">30-40%</option>
-        </select>
-      </div>
+      <select
+        className="form-select lg-white-btn"
+        style={{ width: "200px", height: "45px", borderRadius: "10px", border: "1px solid #ECECEC" }}
+        value={selectedCourse}
+        onChange={(e) => { setSelectedCourse(e.target.value); setCurrentPage(1); }}
+      >
+        <option value="All">All Courses</option>
+        {courseList.map(course => (
+            <option key={course._id} value={course._id}>{course.title}</option>
+        ))}
+      </select>
+
+      <select
+        className="form-select lg-white-btn"
+        style={{ width: "200px", height: "45px", borderRadius: "10px", border: "1px solid #ECECEC" }}
+        value={selectedProgress}
+        onChange={(e) => { setSelectedProgress(e.target.value); setCurrentPage(1); }}
+      >
+        <option value="All">All Progress</option>
+        <option value="0-25">0-25%</option>
+        <option value="25-50">25-50%</option>
+        <option value="50-75">50-75%</option>
+        <option value="75-100">75-100%</option>
+      </select>
 
     </div>
   </div>

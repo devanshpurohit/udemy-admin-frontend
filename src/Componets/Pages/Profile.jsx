@@ -180,6 +180,7 @@ function Profile() {
                         
                         // Update localStorage to trigger storage events in other components
                         localStorage.setItem('user', JSON.stringify(updatedUser));
+                        window.dispatchEvent(new Event('userUpdated'));
                         console.log('Profile - Re-fetched and updated localStorage with user (image upload):', updatedUser);
                         
                         // Also update with user data for consistency
@@ -228,6 +229,7 @@ function Profile() {
                     
                     // Update localStorage to trigger storage events in other components
                     localStorage.setItem('user', JSON.stringify(updatedUser));
+                    window.dispatchEvent(new Event('userUpdated'));
                     console.log('Profile - Re-fetched and updated localStorage with user:', updatedUser);
                     
                     // Update form data with new values

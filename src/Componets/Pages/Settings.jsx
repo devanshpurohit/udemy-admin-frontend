@@ -120,6 +120,7 @@ function Settings() {
       if (refreshed.success) {
         const updatedUser = refreshed.data.user;
         localStorage.setItem("user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event('userUpdated'));
         setUser(updatedUser);
         
         // Update preview with new image

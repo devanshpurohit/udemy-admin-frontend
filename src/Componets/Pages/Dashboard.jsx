@@ -157,20 +157,7 @@ function Dashboard() {
                                 <p className="text-muted">Here's what's happening with your courses today</p>
                             </div>
                             <div className="col-lg-3">
-                                <div className="custom-frm-bx">
-                                    <input
-                                        type="email"
-                                        className="form-control  search-table-frm pe-5"
-                                        id="email"
-                                        placeholder="Search"
-                                        required
-                                    />
-                                    <div className="adm-search-bx">
-                                        <button className="filter-btn">
-                                            <FontAwesomeIcon icon={faSearch} />
-                                        </button>
-                                    </div>
-                                </div>
+                               
                             </div>
 
                             <div className="col-lg-4">
@@ -335,7 +322,7 @@ function Dashboard() {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>{course.students || 0}</td>
+                                                         <td>{course.students || course.totalEnrollments || 0}</td>
                                                         <td>${course.price || 0}</td>
                                                         <td>{course.rating || 4.5}</td>
                                                         <td>
