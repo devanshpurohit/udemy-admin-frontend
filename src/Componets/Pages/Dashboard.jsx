@@ -12,6 +12,16 @@ import { getDashboardStats } from "../../services/dashboardService";
 import { getCourses } from "../../services/courseService";
 import { getStoredUser } from "../../services/authService";
 import { getStudents } from "../../services/studentService";
+import { getLangText } from "../../utils/languageUtils";
+
+const getImageUrl = (url) => {
+    if (!url) return "/pic_01.jpg";
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api').replace('/api', '');
+    let cleanPath = url.replace(/\\/g, '/');
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    return `${baseUrl}${cleanPath}`;
+};
 
 function Dashboard() {
     const [stats, setStats] = useState(null);
@@ -306,8 +316,8 @@ function Dashboard() {
                                                             <div className="admin-table-bx">
                                                                 <div className="admin-table-sub-bx">
                                                                     <img 
-                                                                        src={course.courseImage || course.thumbnail || "/pic_01.jpg"} 
-                                                                        alt={course.title}
+                                                                        src={getImageUrl(course.courseImage || course.thumbnail)} 
+                                                                        alt={getLangText(course.title)}
                                                                         style={{ 
                                                                             width: '60px', 
                                                                             height: '60px', 
@@ -316,7 +326,7 @@ function Dashboard() {
                                                                         }}
                                                                     />
                                                                     <div className="admin-table-sub-details doctor-title">
-                                                                        <h6>{course.title}</h6>
+                                                                        <h6>{getLangText(course.title)}</h6>
                                                                         <p>{course.category} - {course.level}</p>
                                                                     </div>
                                                                 </div>

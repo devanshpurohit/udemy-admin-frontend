@@ -190,16 +190,28 @@ export const uploadThumbnail = async (courseId, file) => {
   }
 };
 
+// Cloudinary signature
+export const getCloudinarySignature = async (folder = 'udemy/videos') => {
+  try {
+    const response = await api.get('/courses/cloudinary-signature', { params: { folder } });
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Upload lesson video
-export const uploadVideo = async (courseId, lessonId, file) => {
+export const uploadVideo = async (courseId, lessonId, file, lang = 'en') => {
   try {
     const formData = new FormData();
     formData.append('video', file);
+    formData.append('lang', lang);
     
     const response = await api.post(`/courses/${courseId}/lessons/${lessonId}/upload-video`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      params: { lang } // Also send as query param just in case
     });
     return response;
   } catch (error) {

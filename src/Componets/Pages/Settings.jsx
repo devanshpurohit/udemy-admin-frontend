@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { NavLink } from "react-router-dom";
 import { MdAddAPhoto } from "react-icons/md";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 import { getStoredUser, updateProfile, changePassword } from "../../services/authService";
 import { uploadProfileImage, refetchUser } from "../../services/profileService";
@@ -13,6 +13,7 @@ function Settings() {
   const [user, setUser] = useState(null);
   const [preview, setPreview] = useState("/user-profile.png");
   const [profileImage, setProfileImage] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -276,35 +277,68 @@ function Settings() {
         <h4 className="inner-title">Security</h4>
 
         <form onSubmit={handlePasswordSubmit}>
-          <input
-            type="password"
-            name="currentPassword"
-            value={passwordData.currentPassword}
-            onChange={handlePasswordChange}
-            className="form-control profile-control mt-3"
-            placeholder="Current Password"
-            required
-          />
+          <div className="custom-frm-bx mt-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="currentPassword"
+              value={passwordData.currentPassword}
+              onChange={handlePasswordChange}
+              className="form-control profile-control pe-5"
+              placeholder="Current Password"
+              required
+            />
+            <div className="pass-toggle-box">
+              <button
+                type="button"
+                className="pass-eye-btn"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+              </button>
+            </div>
+          </div>
 
-          <input
-            type="password"
-            name="newPassword"
-            value={passwordData.newPassword}
-            onChange={handlePasswordChange}
-            className="form-control profile-control mt-3"
-            placeholder="New Password"
-            required
-          />
+          <div className="custom-frm-bx mt-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={handlePasswordChange}
+              className="form-control profile-control pe-5"
+              placeholder="New Password"
+              required
+            />
+            <div className="pass-toggle-box">
+              <button
+                type="button"
+                className="pass-eye-btn"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+              </button>
+            </div>
+          </div>
 
-          <input
-            type="password"
-            name="confirmPassword"
-            value={passwordData.confirmPassword}
-            onChange={handlePasswordChange}
-            className="form-control profile-control mt-3"
-            placeholder="Confirm New Password"
-            required
-          />
+          <div className="custom-frm-bx mt-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="confirmPassword"
+              value={passwordData.confirmPassword}
+              onChange={handlePasswordChange}
+              className="form-control profile-control pe-5"
+              placeholder="Confirm New Password"
+              required
+            />
+            <div className="pass-toggle-box">
+              <button
+                type="button"
+                className="pass-eye-btn"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+              </button>
+            </div>
+          </div>
 
           <button type="submit" className="lg-thm-btn mt-3">
             Change Password

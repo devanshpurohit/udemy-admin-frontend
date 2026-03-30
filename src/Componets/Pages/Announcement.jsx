@@ -8,6 +8,7 @@ import { NavLink } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getAnnouncements, createAnnouncement, deleteAnnouncement, updateAnnouncement, toggleAnnouncementStatus } from "../../services/announcementService";
+import { getLangText } from "../../utils/languageUtils";
 
 // Add cache-busting timestamp
 const CACHE_BUSTER = new Date().getTime();
@@ -434,8 +435,8 @@ function Announcement() {
                                                             <div className="admin-table-bx">
                                                                 <div className="admin-table-sub-bx">
                                                                     <div className="admin-table-sub-details">
-                                                                        <h6>{announcement.title}</h6>
-                                                                        <p>{announcement.content.substring(0, 100)}{announcement.content.length > 100 ? '...' : ''}</p>
+                                                                        <h6>{getLangText(announcement.title)}</h6>
+                                                                        <p>{getLangText(announcement.content).substring(0, 100)}{getLangText(announcement.content).length > 100 ? '...' : ''}</p>
                                                                     </div>
                                                                 </div>
                                                             </div>

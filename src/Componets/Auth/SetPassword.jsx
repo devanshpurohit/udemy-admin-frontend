@@ -1,14 +1,16 @@
-import { faEye } from '@fortawesome/free-solid-svg-icons'
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import authImage from '../../assets/images/auth-image.png';
 
 function SetPassword() {
+    const [showPassword, setShowPassword] = useState(false);
     return (
         <>
             <section className="admin-login-section">
-                <div className="container-fluid ">
-                    <div className="row">
+                <div className="container-fluid px-0">
+                    <div className="row g-0">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
                                <img src={authImage} alt="Set Password" />
@@ -27,25 +29,37 @@ function SetPassword() {
 
                                         <div className="custom-frm-bx">
                                             <input
-                                                type="password"
+                                                type={showPassword ? "text" : "password"}
                                                 className="form-control profile-control pe-5"
                                                 placeholder="Enter Password"
                                             />
 
                                             <div className="pass-toggle-box">
-                                                <button type="button" className="pass-eye-btn"> <FontAwesomeIcon icon={faEye} /> </button>
+                                                <button
+                                                    type="button"
+                                                    className="pass-eye-btn"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                >
+                                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                                                </button>
                                             </div>
                                         </div>
 
                                         <div className="custom-frm-bx">
                                             <input
-                                                type="password"
+                                                type={showPassword ? "text" : "password"}
                                                 className="form-control profile-control pe-5"
                                                 placeholder="Enter Confirm Password"
                                             />
 
                                             <div className="pass-toggle-box">
-                                                <button type="button" className="pass-eye-btn"> <FontAwesomeIcon icon={faEye} /> </button>
+                                                <button
+                                                    type="button"
+                                                    className="pass-eye-btn"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                >
+                                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                                                </button>
                                             </div>
                                         </div>
 

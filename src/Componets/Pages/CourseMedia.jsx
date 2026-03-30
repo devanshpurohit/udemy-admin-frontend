@@ -4,6 +4,15 @@ import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { saveCourseMedia, getCourseDraft } from "../../services/courseService";
 
+const getImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api').replace('/api', '');
+    let cleanPath = url.replace(/\\/g, '/');
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    return `${baseUrl}${cleanPath}`;
+};
+
 function CourseMedia() {
     const navigate = useNavigate();
     const { courseId } = useParams();
@@ -15,6 +24,8 @@ function CourseMedia() {
     // Media states
     const [courseImagePreview, setCourseImagePreview] = useState('');
     const [previewVideoPreview, setPreviewVideoPreview] = useState('');
+    const [previewVideoFile, setPreviewVideoFile] = useState(null);
+    const [videoUploading, setVideoUploading] = useState(false);
     const [courseResources, setCourseResources] = useState([]);
 
     useEffect(() => {
@@ -245,7 +256,7 @@ function CourseMedia() {
                                                 <label htmlFor="courseImage" className="image-upload-label">
                                                     {courseImagePreview ? (
                                                         <img
-                                                            src={courseImagePreview}
+                                                            src={getImageUrl(courseImagePreview)}
                                                             alt="Course preview"
                                                             className="image-preview"
                                                             style={{
@@ -299,7 +310,7 @@ function CourseMedia() {
                                                                 borderRadius: '8px'
                                                             }}
                                                         >
-                                                            <source src={previewVideoPreview} />
+                                                            <source src={getImageUrl(previewVideoPreview)} />
                                                             Your browser does not support the video tag.
                                                         </video>
                                                     ) : (

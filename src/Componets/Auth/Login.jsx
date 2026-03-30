@@ -1,4 +1,4 @@
-import { faEye, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faEye, faEyeSlash, faUser } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useRef, useCallback, useEffect } from 'react'
@@ -13,8 +13,8 @@ function Login() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const debounceTimeoutRef = useRef(null);
 
     const handleChange = (e) => {
         setFormData({
@@ -30,79 +30,63 @@ function Login() {
         // Prevent page refresh
         e.stopPropagation();
         
-        // Clear existing timeout
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-        
-        // Debounce the login attempt
-        debounceTimeoutRef.current = setTimeout(async () => {
-            setLoading(true);
-            setError('');
+        setLoading(true);
+        setError('');
 
-            // Manual test for debugging
-            console.log('🧪 Manual localStorage test:');
-            localStorage.setItem('test-user', JSON.stringify({username: 'test'}));
-            console.log('🧪 Test item saved:', localStorage.getItem('test-user'));
+        // Manual test for debugging
+        console.log('🧪 Manual localStorage test:');
+        localStorage.setItem('test-user', JSON.stringify({username: 'test'}));
+        console.log('🧪 Test item saved:', localStorage.getItem('test-user'));
 
-            try {
-                console.log('🚀 About to call login service...');
-                const response = await login(formData);
-                console.log('📥 Login service response:', response);
+        try {
+            console.log('🚀 About to call login service...');
+            const response = await login(formData);
+            console.log('📥 Login service response:', response);
+            
+            if (response && response.success) {
+                console.log('✅ Login successful, checking user role...');
                 
-                if (response && response.success) {
-                    console.log('✅ Login successful, checking user role...');
-                    
-                    // Check if user has admin role
-                    const userRole = response.data?.user?.role || response.data?.data?.user?.role;
-                    console.log('🔍 User role:', userRole);
-                    
-                    if (userRole !== 'admin') {
-                        console.log('❌ Access denied: User is not admin');
-                        setError('Access denied. Admin access required.');
-                        setLoading(false);
-                        return;
-                    }
-                    
-                    console.log('✅ Admin access granted, navigating to dashboard...');
-                    // Show success toast
-                    toast.success('✅ ADMIN LOGIN SUCCESSFUL! Navigating to dashboard...');
-                    // Use setTimeout to see logs before navigation
-                    setTimeout(() => {
-                        navigate('/dashboard');
-                    }, 2000);
-                } else {
-                    console.log('❌ Login failed:', response?.message);
-                    setError(response?.message || 'Login failed');
+                // Check if user has admin role
+                const userRole = response.data?.user?.role || response.data?.data?.user?.role;
+                console.log('🔍 User role:', userRole);
+                
+                if (userRole !== 'admin') {
+                    console.log('❌ Access denied: User is not admin');
+                    setError('Access denied. Admin access required.');
+                    setLoading(false);
+                    return;
                 }
-            } catch (err) {
-                console.error('Login error:', err);
-                // Provide more specific error message for rate limiting
-                if (err.message?.includes('Too many requests')) {
-                    setError(err.message);
-                } else {
-                    setError(err?.message || 'Login failed. Please try again.');
-                }
-            } finally {
-                setLoading(false);
+                
+                console.log('✅ Admin access granted, navigating to dashboard...');
+                // Show success toast
+                toast.success('✅ ADMIN LOGIN SUCCESSFUL! Navigating to dashboard...');
+                // Use setTimeout to see logs before navigation
+                setTimeout(() => {
+                    navigate('/dashboard');
+                }, 1000); // Reduced from 2000 to 1000
+            } else {
+                console.log('❌ Login failed:', response?.message);
+                setError(response?.message || 'Login failed');
             }
-        }, 500); // 500ms debounce delay
+        } catch (err) {
+            console.error('Login error:', err);
+            // Provide more specific error message for rate limiting
+            if (err.message?.includes('Too many requests')) {
+                setError(err.message);
+            } else {
+                setError(err?.message || 'Login failed. Please try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
     }, [formData, navigate]);
 
-    // Cleanup timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
-            }
-        };
-    }, []);
 
     return (
         <>
             <section className="admin-login-section">
-                <div className="container-fluid ">
-                    <div className="row">
+                <div className="container-fluid px-0">
+                    <div className="row g-0">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
                                 <img src={authImage} alt="Login" />
@@ -143,7 +127,7 @@ function Login() {
 
                                         <div className="custom-frm-bx">
                                             <input
-                                                type="password"
+                                                type={showPassword ? "text" : "password"}
                                                 name="password"
                                                 value={formData.password}
                                                 onChange={handleChange}
@@ -152,9 +136,14 @@ function Login() {
                                                 autoComplete="current-password"
                                                 required
                                             />
-
                                             <div className="pass-toggle-box">
-                                                <button type="button" className="pass-eye-btn"> <FontAwesomeIcon icon={faEye} /> </button>
+                                                <button
+                                                    type="button"
+                                                    className="pass-eye-btn"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                >
+                                                    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                                                </button>
                                             </div>
                                         </div>
                                         <div className='d-flex align-items-center justify-content-between'>

@@ -183,8 +183,9 @@
     flex-wrap: wrap;
   }
 
-  .admin-pisture-bx img {
-    min-height: 350px;
+  .admin-picture-box img {
+    max-height: 400px;
+    width: auto;
   }
 
   .admin-frm-vendor-bx {
@@ -199,6 +200,7 @@
 
   .admin-login-section {
     overflow: auto !important;
+    height: 100vh !important;
   }
 
   .lab-login-frm-bx {
@@ -386,7 +388,8 @@
     }
 
     .admin-picture-box img{
-      height: 500px;
+      max-height: 400px;
+      width: auto;
     }
 
  
@@ -429,11 +432,12 @@
     }
 
      .admin-picture-box img {
-        min-height: 350px;
+        max-height: 300px;
+        width: auto;
     }
 
     .admin-picture-box::after{
-      height: 500px;
+      height: 100%;
     }
 
     .admin-picture-box{

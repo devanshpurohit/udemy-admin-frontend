@@ -3,9 +3,7 @@ import api from './api';
 // @desc    Get all students
 export const getStudents = async (params = {}) => {
   try {
-    console.log('studentService - Making request with params:', params);
     const response = await api.get('/students', { params });
-    console.log('studentService - Response received:', response);
     return response;
   } catch (error) {
     console.error('Get students error:', error);
@@ -75,6 +73,34 @@ export const getStudentCertificates = async (studentId) => {
     return response;
   } catch (error) {
     console.error('Get student certificates error:', error);
+    throw error;
+  }
+};
+
+// @desc    Update student profile (Admin)
+export const updateStudentProfile = async (id, profileData) => {
+  try {
+    const response = await api.put(`/admin/users/${id}/profile`, profileData);
+    return response;
+  } catch (error) {
+    console.error('Update student profile error:', error);
+    throw error;
+  }
+};
+
+// @desc    Upload student profile image
+export const uploadStudentProfileImage = async (id, imageFile) => {
+  try {
+    const formData = new FormData();
+    formData.append('profileImage', imageFile);
+    const response = await api.post(`/students/${id}/profile-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response;
+  } catch (error) {
+    console.error('Upload student profile image error:', error);
     throw error;
   }
 };

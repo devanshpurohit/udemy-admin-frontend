@@ -8,7 +8,10 @@ function SiteSettings() {
   const [settings, setSettings] = useState({
     logoUrl: "",
     footerContent: "",
-    siteName: ""
+    siteName: "",
+    bannerTitle: "",
+    bannerSubtitle: "",
+    bannerDescription: ""
   });
   const [preview, setPreview] = useState("");
   const [logoFile, setLogoFile] = useState(null);
@@ -61,6 +64,9 @@ function SiteSettings() {
       const formData = new FormData();
       formData.append('footerContent', settings.footerContent);
       formData.append('siteName', settings.siteName);
+      formData.append('bannerTitle', settings.bannerTitle);
+      formData.append('bannerSubtitle', settings.bannerSubtitle);
+      formData.append('bannerDescription', settings.bannerDescription);
       if (logoFile) {
         formData.append('logo', logoFile);
       }
@@ -163,6 +169,49 @@ function SiteSettings() {
                 <small className="text-muted">This content appears next to the logo in the student website footer.</small>
               </div>
 
+              <hr className="my-4" />
+              <h4 className="inner-title mb-4">Homepage Banner Settings</h4>
+
+              {/* Banner Title */}
+              <div className="mb-3">
+                <label className="form-label fw-bold">Banner Title (Top Small Text)</label>
+                <input
+                  type="text"
+                  name="bannerTitle"
+                  value={settings.bannerTitle}
+                  onChange={handleChange}
+                  className="form-control profile-control"
+                  placeholder="e.g. Learn AI the Smart Way"
+                />
+              </div>
+
+              {/* Banner Subtitle */}
+              <div className="mb-3">
+                <label className="form-label fw-bold">Banner Subtitle (Main Heading)</label>
+                <input
+                  type="text"
+                  name="bannerSubtitle"
+                  value={settings.bannerSubtitle}
+                  onChange={handleChange}
+                  className="form-control profile-control"
+                  placeholder="e.g. Simple, practical AI concepts..."
+                />
+              </div>
+
+              {/* Banner Description */}
+              <div className="mb-4">
+                <label className="form-label fw-bold">Banner Description (Paragraph)</label>
+                <textarea
+                  name="bannerDescription"
+                  value={settings.bannerDescription}
+                  onChange={handleChange}
+                  className="form-control profile-control"
+                  placeholder="Enter a detailed description for the homepage banner..."
+                  rows="3"
+                  style={{ height: 'auto' }}
+                ></textarea>
+              </div>
+
               <div className="text-end">
                 <button 
                   type="submit" 
@@ -191,6 +240,14 @@ function SiteSettings() {
                     <div className="p-3 border rounded bg-dark text-white">
                         <img src={preview} alt="Logo" style={{ maxHeight: '25px', marginBottom: '10px', filter: 'brightness(0) invert(1)' }} />
                         <p style={{ fontSize: '12px', lineHeight: '1.5', margin: 0 }}>{settings.footerContent}</p>
+                    </div>
+                </div>
+                <div className="mt-3">
+                    <small className="text-muted d-block mb-1">Banner Preview:</small>
+                    <div className="p-3 border rounded bg-light" style={{ fontSize: '10px' }}>
+                        <h6 style={{ fontSize: '9px', fontWeight: 'bold' }}>{settings.bannerTitle}</h6>
+                        <h5 style={{ fontSize: '12px', fontWeight: 'bold', margin: '5px 0' }}>{settings.bannerSubtitle}</h5>
+                        <p className="mb-0 text-muted">{settings.bannerDescription}</p>
                     </div>
                 </div>
             </div>

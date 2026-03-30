@@ -6,6 +6,7 @@ import { NavLink } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getStatements, downloadStatement, updateStatementStatus, getStatement } from "../../services/statementService";
+import { getLangText } from "../../utils/languageUtils";
 
 function Statements() {
     const [statements, setStatements] = useState([]);
@@ -335,7 +336,7 @@ function Statements() {
                                                     <td>{index + 1}</td>
                                                     <td>{statement.orderId}</td>
                                                     <td>{statement.student?.username || statement.user?.username}</td>
-                                                    <td>{statement.course?.title}</td>
+                                                    <td>{getLangText(statement.course?.title)}</td>
                                                     <td>₹{statement.amount}</td>
                                                     <td>{statement.status}</td>
                                                     <td>{new Date(statement.createdAt).toLocaleDateString()}</td>
@@ -468,7 +469,7 @@ function Statements() {
                                             <tbody>
                                                 <tr>
                                                     <td className="py-3">
-                                                        <h6 className="fz-16 mb-1">{viewingStatement.course?.title}</h6>
+                                                        <h6 className="fz-16 mb-1">{getLangText(viewingStatement.course?.title)}</h6>
                                                         <p className="fz-14 mb-0 text-muted">{viewingStatement.course?.level} Level • {viewingStatement.course?.lessons?.length || 0} Lessons</p>
                                                     </td>
                                                     <td className="py-3 text-end fw-600 fz-18">₹{viewingStatement.amount}</td>

@@ -4,7 +4,8 @@ import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FaFileAlt } from "react-icons/fa";
 import { MdQuiz } from "react-icons/md";
-import { getCourseDraft, saveCourseContent, updateSection, deleteSection, updateLessonInSection, deleteLessonFromSection, updateQuiz, deleteQuiz } from "../../services/courseService";
+import { getCourseDraft, saveCourseContent, updateSection, deleteSection, updateLessonInSection, deleteLessonFromSection, updateQuiz, deleteQuiz, uploadVideo } from "../../services/courseService";
+import { getLangText } from "../../utils/languageUtils";
 
 function CourseContent() {
     const navigate = useNavigate();
@@ -22,19 +23,19 @@ function CourseContent() {
     const [completedSteps, setCompletedSteps] = useState([]);
     const [currentStepFromServer, setCurrentStepFromServer] = useState(1);
     const [sectionForm, setSectionForm] = useState({
-        title: '',
-        description: ''
+        title: { en: '', kn: '' },
+        description: { en: '', kn: '' }
     });
     const [lessonForm, setLessonForm] = useState({
-        title: '',
-        description: '',
-        videoUrl: '',
+        title: { en: '', kn: '' },
+        description: { en: '', kn: '' },
+        videoUrl: { en: '', kn: '' },
         duration: 30,
         isPreview: false
     });
     const [quizForm, setQuizForm] = useState({
-        question: '',
-        options: ['', ''],
+        question: { en: '', kn: '' },
+        options: [{ en: '', kn: '' }, { en: '', kn: '' }],
         correctAnswer: 0
     });
 
@@ -47,17 +48,17 @@ function CourseContent() {
     });
 
     const resetForms = () => {
-        setSectionForm({ title: '', description: '' });
-        setLessonForm({ title: '', description: '', videoUrl: '', duration: 30, isPreview: false });
-        setQuizForm({ question: '', options: ['', ''], correctAnswer: 0 });
+        setSectionForm({ title: { en: '', kn: '' }, description: { en: '', kn: '' } });
+        setLessonForm({ title: { en: '', kn: '' }, description: { en: '', kn: '' }, videoUrl: { en: '', kn: '' }, duration: 30, isPreview: false });
+        setQuizForm({ question: { en: '', kn: '' }, options: [{ en: '', kn: '' }, { en: '', kn: '' }], correctAnswer: 0 });
         setEditMode({ type: null, sectionId: null, lessonId: null, id: null });
-        setSelectedVideoFile(null);
-        setVideoSourceType('url');
+        setSelectedVideoFile({ en: null, kn: null });
+        setVideoSourceType({ en: 'url', kn: 'url' });
     };
     
     // Video Upload State
-    const [videoSourceType, setVideoSourceType] = useState('url'); // 'url' or 'upload'
-    const [selectedVideoFile, setSelectedVideoFile] = useState(null);
+    const [videoSourceType, setVideoSourceType] = useState({ en: 'url', kn: 'url' }); // 'url' or 'upload' for each lang
+    const [selectedVideoFile, setSelectedVideoFile] = useState({ en: null, kn: null });
     const [videoUploading, setVideoUploading] = useState(false);
 
     useEffect(() => {
@@ -125,8 +126,15 @@ function CourseContent() {
     };
 
     const handleEditSection = (section) => {
+        const parseField = (field) => {
+            if (typeof field === 'object' && field !== null) return { en: field.en || '', kn: field.kn || '' };
+            return { en: field || '', kn: '' };
+        };
         setEditMode({ type: 'section', id: section._id, sectionId: null, lessonId: null });
-        setSectionForm({ title: section.title, description: section.description || '' });
+        setSectionForm({ 
+            title: parseField(section.title), 
+            description: parseField(section.description) 
+        });
         setShowAddSection(true);
     };
 
@@ -155,60 +163,65 @@ function CourseContent() {
             return;
         }
 
-        let finalVideoUrl = lessonForm.videoUrl;
-
-        // Validation for title and duration
-        if (!lessonForm.title.trim()) {
-            setError('Lesson title is required');
+        const hasTitle = lessonForm.title.en.trim() || lessonForm.title.kn.trim();
+        if (!hasTitle) {
+            setError('Lesson title is required in at least one language');
             return;
         }
-        if (!lessonForm.duration || lessonForm.duration < 1) {
-            setError('Duration must be at least 1 minute');
-            return;
-        }
-
-        if (videoSourceType === 'upload') {
-            if (!selectedVideoFile) {
-                setError('Please select a video file to upload');
-                return;
-            }
-            try {
-                setVideoUploading(true);
-                const formData = new FormData();
-                formData.append('video', selectedVideoFile);
-                const token = localStorage.getItem('token');
-                const uploadRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/upload-video`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                
-                const uploadData = await uploadRes.json();
-                if (uploadData.success) {
-                    finalVideoUrl = uploadData.data.videoUrl;
-                } else {
-                    setError(uploadData.message || 'Failed to upload video');
-                    setVideoUploading(false);
-                    return;
-                }
-            } catch (err) {
-                console.error('Video upload error:', err);
-                setError('Failed to upload video');
-                setVideoUploading(false);
-                return;
-            } finally {
-                setVideoUploading(false);
-            }
-        } else {
-            if (!finalVideoUrl || !finalVideoUrl.trim()) {
-                setError('Video URL is required');
-                return;
-            }
-        }
-
+        
         try {
             setLoading(true);
-            const dataToSubmit = { ...lessonForm, videoUrl: finalVideoUrl };
+            
+            // 🎬 Step 1: Handle Video Uploads if any
+            let finalVideoUrl = { ...lessonForm.videoUrl };
+            const langs = ['en', 'kn'];
+            
+            for (const lang of langs) {
+                if (videoSourceType[lang] === 'upload' && selectedVideoFile[lang]) {
+                    setVideoUploading(true);
+                    try {
+                        let uploadedUrl = '';
+                        if (editMode.type === 'lesson' && editMode.id) {
+                            const uploadRes = await uploadVideo(courseId, editMode.id, selectedVideoFile[lang], lang);
+                            // Handle both possible response structures
+                            uploadedUrl = uploadRes.data.videoUrl?.[lang] || uploadRes.data.videoUrl;
+                        } else {
+                            // Generic upload for new lessons
+                            const formData = new FormData();
+                            formData.append('video', selectedVideoFile[lang]);
+                            formData.append('lang', lang);
+                            const token = localStorage.getItem('token');
+                            const uploadResRaw = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api'}/courses/upload-video`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                            });
+                            const uploadRes = await uploadResRaw.json();
+                            if (!uploadRes.success) throw new Error(uploadRes.message || "Failed to upload");
+                            uploadedUrl = uploadRes.data.videoUrl;
+                        }
+                        
+                        if (uploadedUrl) {
+                            finalVideoUrl[lang] = uploadedUrl;
+                            console.log(`✅ ${lang} video uploaded:`, uploadedUrl);
+                        }
+                    } catch (uploadErr) {
+                        console.error(`Failed to upload ${lang} video:`, uploadErr);
+                        setError(`Failed to upload ${lang === 'en' ? 'English' : 'Kannada'} video`);
+                        setVideoUploading(false);
+                        setLoading(false);
+                        return;
+                    }
+                    setVideoUploading(false);
+                }
+            }
+
+            // 📝 Step 2: Submit Lesson Data
+            const dataToSubmit = { 
+                ...lessonForm, 
+                videoUrl: finalVideoUrl 
+            };
+
             let response;
             if (editMode.type === 'lesson') {
                 response = await updateLessonInSection(courseId, selectedSection, editMode.id, dataToSubmit);
@@ -252,16 +265,24 @@ function CourseContent() {
     };
 
     const handleEditLesson = (sectionId, lesson) => {
+        const parseField = (field) => {
+            if (typeof field === 'object' && field !== null) return { en: field.en || '', kn: field.kn || '' };
+            return { en: field || '', kn: '' };
+        };
+        const parseVideoUrl = (videoUrl) => {
+            if (typeof videoUrl === 'object' && videoUrl !== null) return { en: videoUrl.en || '', kn: videoUrl.kn || '' };
+            return { en: videoUrl || '', kn: '' };
+        };
         setSelectedSection(sectionId);
         setEditMode({ type: 'lesson', id: lesson._id, sectionId, lessonId: null });
         setLessonForm({
-            title: lesson.title,
-            description: lesson.description || '',
-            videoUrl: lesson.videoUrl,
+            title: parseField(lesson.title),
+            description: parseField(lesson.description),
+            videoUrl: parseVideoUrl(lesson.videoUrl),
             duration: lesson.duration,
             isPreview: lesson.isPreview
         });
-        setVideoSourceType('url'); // Default to URL for editing
+        setVideoSourceType({ en: 'url', kn: 'url' }); // Default to URL for editing
         setShowAddLesson(true);
     };
 
@@ -296,8 +317,9 @@ function CourseContent() {
             return;
         }
         
-        if (!quizForm.question.trim()) {
-            setError('Quiz question is required');
+        const hasQuestion = (quizForm.question.en || '').trim() || (quizForm.question.kn || '').trim();
+        if (!hasQuestion) {
+            setError('Quiz question is required in at least one language');
             return;
         }
         
@@ -306,9 +328,9 @@ function CourseContent() {
             return;
         }
         
-        const emptyOptions = quizForm.options.filter(option => !option.trim());
+        const emptyOptions = quizForm.options.filter(option => !(option.en || '').trim() && !(option.kn || '').trim());
         if (emptyOptions.length > 0) {
-            setError('All options must have values');
+            setError('All options must have values in at least one language');
             return;
         }
         
@@ -371,12 +393,20 @@ function CourseContent() {
     };
 
     const handleEditQuiz = (sectionId, lessonId, quiz) => {
+        const parseField = (field) => {
+            if (typeof field === 'object' && field !== null) return { en: field.en || '', kn: field.kn || '' };
+            return { en: field || '', kn: '' };
+        };
+        const parseOptions = (options) => {
+            if (!Array.isArray(options)) return [{ en: '', kn: '' }, { en: '', kn: '' }];
+            return options.map(opt => parseField(opt));
+        };
         setSelectedSection(sectionId);
         setSelectedLesson(lessonId);
         setEditMode({ type: 'quiz', id: quiz._id, sectionId, lessonId });
         setQuizForm({
-            question: quiz.question,
-            options: [...quiz.options],
+            question: parseField(quiz.question),
+            options: parseOptions(quiz.options),
             correctAnswer: quiz.correctAnswer
         });
         setShowAddQuiz(true);
@@ -416,34 +446,52 @@ function CourseContent() {
 
     const handleSectionFormChange = (e) => {
         const { name, value } = e.target;
-        setSectionForm({
-            ...sectionForm,
-            [name]: value
-        });
+        if (name.includes('_')) {
+            const [field, lang] = name.split('_');
+            setSectionForm(prev => ({
+                ...prev,
+                [field]: { ...prev[field], [lang]: value }
+            }));
+        } else {
+            setSectionForm({ ...sectionForm, [name]: value });
+        }
     };
 
     const handleLessonFormChange = (e) => {
         const { name, value, type } = e.target;
-        setLessonForm({
-            ...lessonForm,
-            [name]: type === 'number' ? parseFloat(value) || 0 : type === 'checkbox' ? e.target.checked : value
-        });
+        if (name.includes('_')) {
+            const [field, lang] = name.split('_');
+            setLessonForm(prev => ({
+                ...prev,
+                [field]: { ...prev[field], [lang]: value }
+            }));
+        } else {
+            setLessonForm({
+                ...lessonForm,
+                [name]: type === 'number' ? parseFloat(value) || 0 : type === 'checkbox' ? e.target.checked : value
+            });
+        }
     };
 
     const handleQuizFormChange = (e) => {
         const { name, value } = e.target;
-        if (name.startsWith('option')) {
-            const index = parseInt(name.split('-')[1]);
-            const newOptions = [...quizForm.options];
-            newOptions[index] = value;
-            setQuizForm({
-                ...quizForm,
-                options: newOptions
-            });
+        if (name.includes('_')) {
+            const [field, lang] = name.split('_');
+            if (field.startsWith('option')) {
+                const index = parseInt(field.split('-')[1]);
+                const newOptions = [...quizForm.options];
+                newOptions[index] = { ...newOptions[index], [lang]: value };
+                setQuizForm({ ...quizForm, options: newOptions });
+            } else {
+                setQuizForm(prev => ({
+                    ...prev,
+                    [field]: { ...prev[field], [lang]: value }
+                }));
+            }
         } else {
             setQuizForm({
                 ...quizForm,
-                [name]: value
+                [name]: name === 'correctAnswer' ? parseInt(value) : value
             });
         }
     };
@@ -452,7 +500,7 @@ function CourseContent() {
         if (quizForm.options.length < 6) {
             setQuizForm({
                 ...quizForm,
-                options: [...quizForm.options, '']
+                options: [...quizForm.options, { en: '', kn: '' }]
             });
         }
     };
@@ -692,29 +740,57 @@ function CourseContent() {
                                 </div>
                                 <div className="card-body">
                                     <div className="row">
-                                        <div className="col-md-12">
+                                        <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Section Title</label>
+                                                <label className="form-label">🇬🇧 Section Title (English)</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
-                                                    name="title"
-                                                    value={sectionForm.title}
+                                                    name="title_en"
+                                                    value={sectionForm.title.en}
                                                     onChange={handleSectionFormChange}
-                                                    placeholder="Enter section title"
+                                                    placeholder="Enter section title in English"
                                                 />
                                             </div>
                                         </div>
-                                        <div className="col-md-12">
+                                        <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Description</label>
+                                                <label className="form-label">🇮🇳 Section Title (Kannada)</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="title_kn"
+                                                    value={sectionForm.title.kn}
+                                                    onChange={handleSectionFormChange}
+                                                    placeholder="ಕನ್ನಡದಲ್ಲಿ ವಿಭಾಗದ ಶೀರ್ಷಿಕೆಯನ್ನು ನಮೂದಿಸಿ"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <div className="mb-3">
+                                                <label className="form-label">🇬🇧 Description (English)</label>
                                                 <textarea
                                                     className="form-control"
-                                                    name="description"
-                                                    value={sectionForm.description}
+                                                    name="description_en"
+                                                    value={sectionForm.description.en}
                                                     onChange={handleSectionFormChange}
-                                                    placeholder="Enter section description"
-                                                    rows="3"
+                                                    placeholder="Enter section description in English"
+                                                    rows="2"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="mb-3">
+                                                <label className="form-label">🇮🇳 Description (Kannada)</label>
+                                                <textarea
+                                                    className="form-control"
+                                                    name="description_kn"
+                                                    value={sectionForm.description.kn}
+                                                    onChange={handleSectionFormChange}
+                                                    placeholder="ವಿವರಣೆಯನ್ನು ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ"
+                                                    rows="2"
                                                 />
                                             </div>
                                         </div>
@@ -744,7 +820,7 @@ function CourseContent() {
                                 <div className="card-header bg-light">
                                     <div className="d-flex justify-content-between align-items-center">
                                         <h5 className="mb-0">
-                                            Section {sectionIndex + 1}: {section.title}
+                                            Section {sectionIndex + 1}: {getLangText(section.title)}
                                         </h5>
                                         <div className="d-flex gap-2">
                                             <button 
@@ -774,7 +850,7 @@ function CourseContent() {
                                         </div>
                                     </div>
                                     {section.description && (
-                                        <p className="text-muted mb-0 mt-2">{section.description}</p>
+                                        <p className="text-muted mb-0 mt-2">{getLangText(section.description)}</p>
                                     )}
                                 </div>
                                 <div className="card-body">
@@ -787,13 +863,13 @@ function CourseContent() {
                                                     <div className="d-flex justify-content-between align-items-start">
                                                         <div className="flex-grow-1">
                                                             <h6 className="mb-2">
-                                                                {lessonIndex + 1}. {lesson.title}
+                                                                {lessonIndex + 1}. {getLangText(lesson.title)}
                                                                 {lesson.isPreview && (
                                                                     <span className="badge bg-success ms-2">Preview</span>
                                                                 )}
                                                             </h6>
                                                             {lesson.description && (
-                                                                <p className="text-muted mb-2">{lesson.description}</p>
+                                                                <p className="text-muted mb-2">{getLangText(lesson.description)}</p>
                                                             )}
                                                             <div className="d-flex gap-3 text-muted small">
                                                                 <span><FontAwesomeIcon icon={faVideo} /> {lesson.duration} min</span>
@@ -838,7 +914,7 @@ function CourseContent() {
                                                                     <div key={quiz._id || quizIndex} className="quiz-item bg-light rounded p-2 mb-2">
                                                                         <div className="d-flex justify-content-between align-items-center">
                                                                             <div>
-                                                                                <strong>Q{quizIndex + 1}:</strong> {quiz.question}
+                                                                                <strong>Q{quizIndex + 1}:</strong> {getLangText(quiz.question)}
                                                                             </div>
                                                                             <div className="d-flex gap-2">
                                                                                 <button 
@@ -887,21 +963,37 @@ function CourseContent() {
                                 </div>
                                 <div className="card-body">
                                     <div className="row">
+                                    <div className="row">
                                         <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Lesson Title *</label>
+                                                <label className="form-label">🇬🇧 Lesson Title (English) *</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
-                                                    name="title"
-                                                    value={lessonForm.title}
+                                                    name="title_en"
+                                                    value={lessonForm.title.en}
                                                     onChange={handleLessonFormChange}
-                                                    placeholder="Enter lesson title"
+                                                    placeholder="Enter lesson title in English"
                                                     required
                                                 />
                                             </div>
                                         </div>
                                         <div className="col-md-6">
+                                            <div className="mb-3">
+                                                <label className="form-label">🇮🇳 Lesson Title (Kannada)</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="title_kn"
+                                                    value={lessonForm.title.kn}
+                                                    onChange={handleLessonFormChange}
+                                                    placeholder="ಪಾಠದ ಶೀರ್ಷಿಕೆಯನ್ನು ಕನ್ನಡದಲ್ಲಿ ನಮೂದಿಸಿ"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="row">
+                                        <div className="col-md-4">
                                             <div className="mb-3">
                                                 <label className="form-label">Duration (minutes) *</label>
                                                 <input
@@ -916,54 +1008,67 @@ function CourseContent() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="col-md-12">
+                                        <div className="col-md-4">
                                             <div className="mb-3">
-                                                <label className="form-label">Description</label>
+                                                <label className="form-label">🇬🇧 Description (English)</label>
                                                 <textarea
                                                     className="form-control"
-                                                    name="description"
-                                                    value={lessonForm.description}
+                                                    name="description_en"
+                                                    value={lessonForm.description.en}
                                                     onChange={handleLessonFormChange}
-                                                    placeholder="Enter lesson description"
-                                                    rows="3"
+                                                    placeholder="English description"
+                                                    rows="2"
                                                 />
                                             </div>
                                         </div>
-                                        <div className="col-md-12">
+                                        <div className="col-md-4">
                                             <div className="mb-3">
-                                                <label className="form-label d-block">Video Source *</label>
+                                                <label className="form-label">🇮🇳 Description (Kannada)</label>
+                                                <textarea
+                                                    className="form-control"
+                                                    name="description_kn"
+                                                    value={lessonForm.description.kn}
+                                                    onChange={handleLessonFormChange}
+                                                    placeholder="ಕನ್ನಡ ವಿವರಣೆ"
+                                                    rows="2"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                        {/* Bilingual Video Section */}
+                                        <div className="col-md-6 border-end">
+                                            <div className="mb-3">
+                                                <label className="form-label d-block fw-bold">🇬🇧 English Video Source *</label>
                                                 <div className="btn-group mb-3" role="group">
                                                     <input 
                                                         type="radio" 
                                                         className="btn-check" 
-                                                        name="videoSource" 
-                                                        id="btnradio1" 
-                                                        autoComplete="off" 
-                                                        checked={videoSourceType === 'url'} 
-                                                        onChange={() => setVideoSourceType('url')} 
+                                                        name="videoSource_en" 
+                                                        id="btnradio_en_1" 
+                                                        checked={videoSourceType.en === 'url'} 
+                                                        onChange={() => setVideoSourceType({...videoSourceType, en: 'url'})} 
                                                     />
-                                                    <label className="btn btn-outline-primary" htmlFor="btnradio1">YouTube URL</label>
+                                                    <label className="btn btn-sm btn-outline-primary" htmlFor="btnradio_en_1">YouTube URL</label>
 
                                                     <input 
                                                         type="radio" 
                                                         className="btn-check" 
-                                                        name="videoSource" 
-                                                        id="btnradio2" 
-                                                        autoComplete="off" 
-                                                        checked={videoSourceType === 'upload'} 
-                                                        onChange={() => setVideoSourceType('upload')} 
+                                                        name="videoSource_en" 
+                                                        id="btnradio_en_2" 
+                                                        checked={videoSourceType.en === 'upload'} 
+                                                        onChange={() => setVideoSourceType({...videoSourceType, en: 'upload'})} 
                                                     />
-                                                    <label className="btn btn-outline-primary" htmlFor="btnradio2">Upload File</label>
+                                                    <label className="btn btn-sm btn-outline-primary" htmlFor="btnradio_en_2">Upload File</label>
                                                 </div>
 
-                                                {videoSourceType === 'url' ? (
+                                                {videoSourceType.en === 'url' ? (
                                                     <input
                                                         type="url"
                                                         className="form-control"
-                                                        name="videoUrl"
-                                                        value={lessonForm.videoUrl}
+                                                        name="videoUrl_en"
+                                                        value={lessonForm.videoUrl.en}
                                                         onChange={handleLessonFormChange}
-                                                        placeholder="https://youtube.com/watch?v=..."
+                                                        placeholder="English YouTube URL"
                                                     />
                                                 ) : (
                                                     <div>
@@ -971,9 +1076,59 @@ function CourseContent() {
                                                             type="file" 
                                                             className="form-control" 
                                                             accept="video/*" 
-                                                            onChange={(e) => setSelectedVideoFile(e.target.files[0])} 
+                                                            onChange={(e) => setSelectedVideoFile({...selectedVideoFile, en: e.target.files[0]})} 
                                                         />
-                                                        {selectedVideoFile && <small className="text-muted d-block mt-1">Selected: {selectedVideoFile.name}</small>}
+                                                        {selectedVideoFile.en && <small className="text-muted d-block mt-1">Selected: {selectedVideoFile.en.name}</small>}
+                                                        {lessonForm.videoUrl.en && !selectedVideoFile.en && <small className="text-success d-block mt-1">Current: {lessonForm.videoUrl.en.split('/').pop()}</small>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="col-md-6">
+                                            <div className="mb-3">
+                                                <label className="form-label d-block fw-bold">🇮🇳 Kannada Video Source</label>
+                                                <div className="btn-group mb-3" role="group">
+                                                    <input 
+                                                        type="radio" 
+                                                        className="btn-check" 
+                                                        name="videoSource_kn" 
+                                                        id="btnradio_kn_1" 
+                                                        checked={videoSourceType.kn === 'url'} 
+                                                        onChange={() => setVideoSourceType({...videoSourceType, kn: 'url'})} 
+                                                    />
+                                                    <label className="btn btn-sm btn-outline-primary" htmlFor="btnradio_kn_1">YouTube URL</label>
+
+                                                    <input 
+                                                        type="radio" 
+                                                        className="btn-check" 
+                                                        name="videoSource_kn" 
+                                                        id="btnradio_kn_2" 
+                                                        checked={videoSourceType.kn === 'upload'} 
+                                                        onChange={() => setVideoSourceType({...videoSourceType, kn: 'upload'})} 
+                                                    />
+                                                    <label className="btn btn-sm btn-outline-primary" htmlFor="btnradio_kn_2">Upload File</label>
+                                                </div>
+
+                                                {videoSourceType.kn === 'url' ? (
+                                                    <input
+                                                        type="url"
+                                                        className="form-control"
+                                                        name="videoUrl_kn"
+                                                        value={lessonForm.videoUrl.kn}
+                                                        onChange={handleLessonFormChange}
+                                                        placeholder="Kannada YouTube URL"
+                                                    />
+                                                ) : (
+                                                    <div>
+                                                        <input 
+                                                            type="file" 
+                                                            className="form-control" 
+                                                            accept="video/*" 
+                                                            onChange={(e) => setSelectedVideoFile({...selectedVideoFile, kn: e.target.files[0]})} 
+                                                        />
+                                                        {selectedVideoFile.kn && <small className="text-muted d-block mt-1">Selected: {selectedVideoFile.kn.name}</small>}
+                                                        {lessonForm.videoUrl.kn && !selectedVideoFile.kn && <small className="text-success d-block mt-1">Current: {lessonForm.videoUrl.kn.split('/').pop()}</small>}
                                                     </div>
                                                 )}
                                             </div>
@@ -1029,52 +1184,86 @@ function CourseContent() {
                                 <div className="card-body">
                                     <div className="row">
                                         <div className="col-md-12">
+                                        <div className="col-md-6">
                                             <div className="mb-3">
-                                                <label className="form-label">Question *</label>
+                                                <label className="form-label">🇬🇧 Question (English) *</label>
                                                 <textarea
                                                     className="form-control"
-                                                    name="question"
-                                                    value={quizForm.question}
+                                                    name="question_en"
+                                                    value={quizForm.question.en}
                                                     onChange={handleQuizFormChange}
-                                                    placeholder="Enter your question"
+                                                    placeholder="Enter your question in English"
                                                     rows="3"
                                                     required
                                                 />
                                             </div>
                                         </div>
+                                        <div className="col-md-6">
+                                            <div className="mb-3">
+                                                <label className="form-label">🇮🇳 Question (Kannada)</label>
+                                                <textarea
+                                                    className="form-control"
+                                                    name="question_kn"
+                                                    value={quizForm.question.kn}
+                                                    onChange={handleQuizFormChange}
+                                                    placeholder="ಕನ್ನಡದಲ್ಲಿ ಪ್ರಶ್ನೆಯನ್ನು ಬರೆಯಿರಿ"
+                                                    rows="3"
+                                                />
+                                            </div>
+                                        </div>
+                                        </div>
                                         <div className="col-md-12">
                                             <div className="mb-3">
                                                 <label className="form-label">Options * (Select radio button for correct answer)</label>
                                                 {quizForm.options.map((option, index) => (
-                                                    <div key={index} className="d-flex gap-2 mb-2">
-                                                        <div className="form-check pt-1">
-                                                            <input
-                                                                type="radio"
-                                                                className="form-check-input"
-                                                                name="correctAnswer"
-                                                                id={`correctAnswer-${index}`}
-                                                                checked={quizForm.correctAnswer === index}
-                                                                onChange={() => setQuizForm({...quizForm, correctAnswer: index})}
-                                                            />
+                                                    <div key={index} className="border rounded p-2 mb-3 bg-light">
+                                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                                            <div className="form-check">
+                                                                <input
+                                                                    type="radio"
+                                                                    className="form-check-input"
+                                                                    name="correctAnswer"
+                                                                    id={`correctAnswer-${index}`}
+                                                                    checked={quizForm.correctAnswer === index}
+                                                                    onChange={() => setQuizForm({...quizForm, correctAnswer: index})}
+                                                                />
+                                                                <label className="form-check-label" htmlFor={`correctAnswer-${index}`}>
+                                                                    Correct Answer
+                                                                </label>
+                                                            </div>
+                                                            {quizForm.options.length > 2 && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => removeQuizOption(index)}
+                                                                >
+                                                                    <FontAwesomeIcon icon={faTrash} />
+                                                                </button>
+                                                            )}
                                                         </div>
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            name={`option-${index}`}
-                                                            value={option}
-                                                            onChange={handleQuizFormChange}
-                                                            placeholder={`Option ${index + 1}`}
-                                                            required
-                                                        />
-                                                        {quizForm.options.length > 2 && (
-                                                            <button
-                                                                type="button"
-                                                                className="btn btn-sm btn-outline-danger"
-                                                                onClick={() => removeQuizOption(index)}
-                                                            >
-                                                                <FontAwesomeIcon icon={faTrash} />
-                                                            </button>
-                                                        )}
+                                                        <div className="row">
+                                                            <div className="col-md-6">
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control mb-2"
+                                                                    name={`option-${index}_en`}
+                                                                    value={option.en}
+                                                                    onChange={handleQuizFormChange}
+                                                                    placeholder={`Option ${index + 1} (English)`}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                            <div className="col-md-6">
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    name={`option-${index}_kn`}
+                                                                    value={option.kn}
+                                                                    onChange={handleQuizFormChange}
+                                                                    placeholder={`ಆಯ್ಕೆ ${index + 1} (ಕನ್ನಡ)`}
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ))}
                                                 <div className="d-flex gap-2 mt-2">

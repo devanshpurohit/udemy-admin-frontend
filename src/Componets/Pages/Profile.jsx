@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { getStoredUser, updateProfile } from '../../services/authService';
 import { uploadProfileImage, refetchUser } from '../../services/profileService';
 import { getCourses } from '../../services/courseService';
+import { getStudents } from '../../services/studentService';
 import adminUsr from '../../assets/images/admin-usr.png';
 import { 
   FaUser,
@@ -21,6 +22,7 @@ function Profile() {
     const [user, setUser] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [coursesCount, setCoursesCount] = useState(0);
+    const [studentsCount, setStudentsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState({
         firstName: '',
@@ -55,6 +57,7 @@ function Profile() {
             
             // Fetch user's courses count
             fetchUserCoursesCount(userData.id || userData._id);
+            fetchStudentsCount();
         } else {
             // Redirect to login if no user
             console.log('Profile - No user found, redirecting to login');
@@ -85,6 +88,7 @@ function Profile() {
                     }
                     
                     fetchUserCoursesCount(userData.id || userData._id);
+                    fetchStudentsCount();
                 }
             }
         };
@@ -108,6 +112,18 @@ function Profile() {
         } catch (error) {
             console.error('Error fetching courses count:', error);
             setCoursesCount(0);
+        }
+    };
+
+    const fetchStudentsCount = async () => {
+        try {
+            const response = await getStudents({ limit: 1000 });
+            if (response.success) {
+                setStudentsCount(response.data.students?.length || 0);
+            }
+        } catch (error) {
+            console.error('Error fetching students count:', error);
+            setStudentsCount(0);
         }
     };
 
@@ -325,7 +341,7 @@ function Profile() {
                                 <span>Courses</span>
                             </div>
                             <div className="stat-item">
-                                <h5>{user?.studentsCount || 0}</h5>
+                                <h5>{studentsCount}</h5>
                                 <span>Students</span>
                             </div>
                             <div className="stat-item">
@@ -457,13 +473,6 @@ function Profile() {
                                         <p className="form-control-static">
                                             <FaPhone className="me-2" />
                                             {user?.profile?.phone || 'Not provided'}
-                                        </p>
-                                    </div>
-                                    <div className="col-md-6 mb-3">
-                                        <label className="form-label text-muted">Member Since</label>
-                                        <p className="form-control-static">
-                                            <FaCalendarAlt className="me-2" />
-                                            {new Date(user?.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>
                                     <div className="col-12 mb-3">

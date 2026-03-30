@@ -8,6 +8,7 @@ import { NavLink } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getCoupons, createCoupon, deleteCoupon, updateCoupon } from "../../services/couponService";
+import { getLangText } from "../../utils/languageUtils";
 
 // Add cache-busting timestamp
 const CACHE_BUSTER = new Date().getTime();
@@ -319,7 +320,7 @@ function Coupon() {
                                                 <tr key={coupon._id}>
                                                     <td>{index + 1}</td>
                                                     <td>{coupon.code}</td>
-                                                    <td>{coupon.description}</td>
+                                                    <td>{getLangText(coupon.description)}</td>
                                                     <td>{coupon.type === 'percentage' ? 'Percentage' : 'Fixed Amount'}</td>
                                                     <td>{coupon.type === 'percentage' ? coupon.value + '%' : '$' + coupon.value}</td>
                                                     <td>{formatDate(coupon.endDate)}</td>

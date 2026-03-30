@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRightToBracket, faClose, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRightToBracket, faClose, faUser, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { NavLink } from "react-router-dom";
 import { RiHome2Fill } from "react-icons/ri";
 import { PiStudentFill } from "react-icons/pi";
@@ -85,6 +85,15 @@ function LeftSidebar() {
                             </li>
 
                             <li className="nav-item">
+                                <NavLink to="/login-permissions" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <FontAwesomeIcon icon={faUser} className="fa-lg" />
+                                    Login Permissions
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
                                 <NavLink to="/coupon" className={({ isActive }) =>
                                     `nav-link ${isActive ? "active-nav" : ""}`
                                 }>
@@ -99,6 +108,24 @@ function LeftSidebar() {
                                 }>
                                     <AiFillSound className="fa-lg" />
                                     Announcement
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
+                                <NavLink to="/feedback-management" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <FontAwesomeIcon icon={faCheck} className="fa-lg" />
+                                    Feedback and Courses FAQ Management
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
+                                <NavLink to="/complaints" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <FontAwesomeIcon icon={faCheck} className="fa-lg" />
+                                    Complaints
                                 </NavLink>
                             </li>
 
@@ -153,6 +180,15 @@ function LeftSidebar() {
                                 }>
                                     <IoSettingsSharp className="fa-lg" />
                                     Generate Logo & Content
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
+                                <NavLink to="/legal-content" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <IoSettingsSharp className="fa-lg" />
+                                    Legal Page Content
                                 </NavLink>
                             </li>
 

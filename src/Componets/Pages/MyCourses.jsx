@@ -9,6 +9,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-toastify";
 import { getCourses, updateCourse, deleteCourse } from "../../services/courseService";
 import { getStoredUser } from "../../services/authService";
+import { getLangText } from "../../utils/languageUtils";
+
+const getImageUrl = (url) => {
+    if (!url) return "/pic_01.jpg";
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api').replace('/api', '');
+    let cleanPath = url.replace(/\\/g, '/');
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    return `${baseUrl}${cleanPath}`;
+};
 
 function MyCourses() {
     const [courses, setCourses] = useState([]);
@@ -102,7 +112,8 @@ function MyCourses() {
     // Handle course deletion
     const handleDeleteCourse = async (courseId, courseTitle) => {
         console.log('Deleting course:', courseId, courseTitle);
-        if (window.confirm(`Are you sure you want to delete "${courseTitle}"? This action cannot be undone.`)) {
+        const displayTitle = getLangText(courseTitle);
+        if (window.confirm(`Are you sure you want to delete "${displayTitle}"? This action cannot be undone.`)) {
             try {
                 console.log('Calling delete API for course:', courseId);
                 const response = await deleteCourse(courseId);
@@ -404,8 +415,8 @@ function MyCourses() {
                                                             <div className="admin-table-bx">
                                                                 <div className="admin-table-sub-bx">
                                                                     <img 
-                                                                        src={course.courseImage || course.thumbnail || "/pic_01.jpg"} 
-                                                                        alt={course.title}
+                                                                        src={getImageUrl(course.courseImage || course.thumbnail)} 
+                                                                        alt={getLangText(course.title)}
                                                                         style={{ 
                                                                             width: '60px', 
                                                                             height: '60px', 
@@ -414,7 +425,7 @@ function MyCourses() {
                                                                         }}
                                                                     />
                                                                     <div className="admin-table-sub-details doctor-title">
-                                                                        <h6>{course.title}</h6>
+                                                                        <h6>{getLangText(course.title)}</h6>
                                                                         <p>{course.category} - {course.level}</p>
                                                                     </div>
                                                                 </div>

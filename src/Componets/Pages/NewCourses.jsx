@@ -2,8 +2,19 @@ import { faClose, faArrowLeft, faArrowRight, faLock } from "@fortawesome/free-so
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { saveCourseDraft, updateCourseDraft, getCourseDraft } from "../../services/courseService";
+import { getLangText } from "../../utils/languageUtils";
 import "./CourseImageUpload.css";
+
+const getImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002/api').replace('/api', '');
+    let cleanPath = url.replace(/\\/g, '/');
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    return `${baseUrl}${cleanPath}`;
+};
 
 function NewCourses() {
     const navigate = useNavigate();
@@ -18,15 +29,15 @@ function NewCourses() {
     
     // Simple form data - all optional
     const [formData, setFormData] = useState({
-        title: '',
-        description: '',
+        title: { en: '', kn: '' },
+        description: { en: '', kn: '' },
         category: 'development',
         level: 'beginner',
         price: 99.99,
         duration: 3,
         language: 'English',
-        requirements: [],
-        whatYouWillLearn: [],
+        requirements: { en: [], kn: [] },
+        whatYouWillLearn: { en: [], kn: [] },
         courseImage: ''
     });
 
@@ -42,16 +53,28 @@ function NewCourses() {
             const response = await getCourseDraft(courseId);
             if (response.success) {
                 const course = response.data;
+                const parseField = (field) => {
+                    if (typeof field === 'object' && field !== null) return { en: field.en || '', kn: field.kn || '' };
+                    return { en: field || '', kn: '' };
+                };
+                
+                const parseList = (field) => {
+                    if (typeof field === 'object' && field !== null && !Array.isArray(field)) {
+                        return { en: Array.isArray(field.en) ? field.en : [], kn: Array.isArray(field.kn) ? field.kn : [] };
+                    }
+                    return { en: Array.isArray(field) ? field : [], kn: [] };
+                };
+
                 setFormData({
-                    title: course.title || '',
-                    description: course.description || '',
+                    title: parseField(course.title),
+                    description: parseField(course.description),
                     category: course.category || 'development',
                     level: course.level || 'beginner',
                     price: course.price || 99.99,
                     duration: course.duration || 3,
                     language: course.language || 'English',
-                    requirements: course.requirements || [],
-                    whatYouWillLearn: course.whatYouWillLearn || [],
+                    requirements: parseList(course.requirements),
+                    whatYouWillLearn: parseList(course.whatYouWillLearn),
                     courseImage: course.courseImage || ''
                 });
                 setCompletedSteps(course.completedSteps || []);
@@ -67,15 +90,44 @@ function NewCourses() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
-        });
+        
+        if (name.includes('_')) {
+            const [field, lang] = name.split('_');
+            setFormData(prev => ({
+                ...prev,
+                [field]: {
+                    ...prev[field],
+                    [lang]: value
+                }
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+    };
+
+    const handleListChange = (name, value, lang) => {
+        setFormData(prev => ({
+            ...prev,
+            [name]: {
+                ...prev[name],
+                [lang]: value.split('\n')
+            }
+        }));
     };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size should be less than 5MB');
+                e.target.value = ''; // Clear the input
+                return;
+            }
+
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData({
@@ -90,9 +142,10 @@ function NewCourses() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Simple validation - just check if title exists, otherwise use default
-        if (!formData.title.trim()) {
-            formData.title = 'Untitled Course';
+        // Simple validation
+        if (!formData.title.en.trim() && !formData.title.kn.trim()) {
+            toast.error('Please enter a course title in at least one language');
+            return;
         }
         
         await saveDraft();
@@ -271,70 +324,115 @@ function NewCourses() {
 
                         <div className="row mb-3">
                             <form onSubmit={handleSubmit}>
-                                <div className="col-lg-12">
-                                    <div className="custom-frm-bx">
-                                        <label htmlFor="" className="fw-500">Enter Course Title (optional)</label>
-                                        <input 
-                                            type="text" 
-                                            name="title"
-                                            className="form-control" 
-                                            placeholder="Enter Course Title" 
-                                            value={formData.title}
-                                            onChange={handleChange}
-                                        />
-                                        <span className="character-title">50-60 Character recomment </span>
+                                <div className="row">
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label className="fw-500">🇬🇧 Course Title (English)</label>
+                                            <input 
+                                                type="text" 
+                                                name="title_en"
+                                                className="form-control" 
+                                                placeholder="Enter Course Title in English" 
+                                                value={formData.title.en}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label className="fw-500">🇮🇳 Course Title (Kannada)</label>
+                                            <input 
+                                                type="text" 
+                                                name="title_kn"
+                                                className="form-control" 
+                                                placeholder="ಕನ್ನಡದಲ್ಲಿ ಕೋರ್ಸ್ ಶೀರ್ಷಿಕೆಯನ್ನು ನಮೂದಿಸಿ" 
+                                                value={formData.title.kn}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="col-lg-12">
-                                    <div className="custom-frm-bx">
-                                        <label htmlFor="">Course Description (optional)</label>
-                                        <textarea 
-                                            name="description"
-                                            className="form-control text-form" 
-                                            placeholder="Describe What student learn with this course"
-                                            value={formData.description}
-                                            onChange={handleChange}
-                                            rows="3"
-                                        ></textarea>
+                                <div className="row">
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇬🇧 Course Description (English)</label>
+                                            <textarea 
+                                                name="description_en"
+                                                className="form-control text-form" 
+                                                placeholder="Describe what students will learn (English)"
+                                                value={formData.description.en}
+                                                onChange={handleChange}
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇮🇳 Course Description (Kannada)</label>
+                                            <textarea 
+                                                name="description_kn"
+                                                className="form-control text-form" 
+                                                placeholder="ಕೋರ್ಸ್ ವಿವರಣೆಯನ್ನು ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ"
+                                                value={formData.description.kn}
+                                                onChange={handleChange}
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="col-lg-12">
-                                    <div className="custom-frm-bx">
-                                        <label htmlFor="">What you will learn (one item per line)</label>
-                                        <textarea 
-                                            name="whatYouWillLearn"
-                                            className="form-control text-form" 
-                                            placeholder="Example: Master React Hooks&#10;Build real-world projects"
-                                            value={Array.isArray(formData.whatYouWillLearn) ? formData.whatYouWillLearn.join('\n') : formData.whatYouWillLearn}
-                                            onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    whatYouWillLearn: e.target.value.split('\n')
-                                                });
-                                            }}
-                                            rows="4"
-                                        ></textarea>
+                                <div className="row">
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇬🇧 What you will learn (English)</label>
+                                            <textarea 
+                                                className="form-control text-form" 
+                                                placeholder="Example: Master React Hooks&#10;Build real-world projects"
+                                                value={Array.isArray(formData.whatYouWillLearn.en) ? formData.whatYouWillLearn.en.join('\n') : ''}
+                                                onChange={(e) => handleListChange('whatYouWillLearn', e.target.value, 'en')}
+                                                rows="4"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇮🇳 What you will learn (Kannada)</label>
+                                            <textarea 
+                                                className="form-control text-form" 
+                                                placeholder="ಉದಾಹರಣೆ: ರಿಯಾಕ್ಟ್ ಮಾಸ್ಟರ್ ಮಾಡಿ"
+                                                value={Array.isArray(formData.whatYouWillLearn.kn) ? formData.whatYouWillLearn.kn.join('\n') : ''}
+                                                onChange={(e) => handleListChange('whatYouWillLearn', e.target.value, 'kn')}
+                                                rows="4"
+                                            ></textarea>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="col-lg-12">
-                                    <div className="custom-frm-bx">
-                                        <label htmlFor="">Requirements (one item per line)</label>
-                                        <textarea 
-                                            name="requirements"
-                                            className="form-control text-form" 
-                                            placeholder="Example: Basic HTML/CSS knowledge&#10;JavaScript fundamentals"
-                                            value={Array.isArray(formData.requirements) ? formData.requirements.join('\n') : formData.requirements}
-                                            onChange={(e) => {
-                                                setFormData({
-                                                    ...formData,
-                                                    requirements: e.target.value.split('\n')
-                                                });
-                                            }}
-                                            rows="4"
-                                        ></textarea>
+                                <div className="row">
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇬🇧 Requirements (English)</label>
+                                            <textarea 
+                                                className="form-control text-form" 
+                                                placeholder="Example: Basic HTML/CSS knowledge"
+                                                value={Array.isArray(formData.requirements.en) ? formData.requirements.en.join('\n') : ''}
+                                                onChange={(e) => handleListChange('requirements', e.target.value, 'en')}
+                                                rows="4"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                    <div className="col-lg-6">
+                                        <div className="custom-frm-bx">
+                                            <label>🇮🇳 Requirements (Kannada)</label>
+                                            <textarea 
+                                                className="form-control text-form" 
+                                                placeholder="ಉದಾಹರಣೆ: ಮೂಲಭೂತ HTML ವಿಷಯಗಳು"
+                                                value={Array.isArray(formData.requirements.kn) ? formData.requirements.kn.join('\n') : ''}
+                                                onChange={(e) => handleListChange('requirements', e.target.value, 'kn')}
+                                                rows="4"
+                                            ></textarea>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -410,7 +508,7 @@ function NewCourses() {
                                         />
                                         {formData.courseImage && (
                                             <img
-                                                src={formData.courseImage}
+                                                src={getImageUrl(formData.courseImage)}
                                                 alt="Course preview"
                                                 className="mt-2"
                                                 style={{ maxWidth: '200px', maxHeight: '150px' }}

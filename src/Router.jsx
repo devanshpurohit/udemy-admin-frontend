@@ -24,10 +24,14 @@ import LiveChat from "./Componets/Pages/AIChat";
 import AICardGenerator from './Componets/Pages/AICardGenerator';
 import SiteSettings from './Componets/Pages/SiteSettings';
 import NewsletterSubscribers from './Componets/Pages/NewsletterSubscribers';
+import FeedbackManagement from './Componets/Pages/FeedbackManagement';
+import LegalContent from './Componets/Pages/LegalContent';
+import Complaints from './Componets/Pages/Complaints';
 import Login from './Componets/Auth/Login';
 import ForgotPassword from './Componets/Auth/ForgotPassword';
 import Otp from './Componets/Auth/Otp';
 import SetPassword from './Componets/Auth/SetPassword';
+import LoginPermissions from './Componets/Pages/LoginPermissions';
 
 const router = createBrowserRouter([
   {
@@ -150,6 +154,22 @@ const router = createBrowserRouter([
       {
         path: "/newsletter",
         element: <NewsletterSubscribers />,
+      },
+      {
+        path: "/feedback-management",
+        element: <FeedbackManagement />,
+      },
+      {
+        path: "/legal-content",
+        element: <LegalContent />,
+      },
+      {
+        path: "/complaints",
+        element: <Complaints />,
+      },
+      {
+        path: "/login-permissions",
+        element: <LoginPermissions />,
       },
     ],
   },

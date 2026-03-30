@@ -11,6 +11,7 @@ import {
   validateCourse,
   publishCourse
 } from "../../services/courseService";
+import { getLangText } from "../../utils/languageUtils";
 
 function CoursePublish() {
   const navigate = useNavigate();
@@ -106,8 +107,8 @@ function CoursePublish() {
       {/* Course Summary */}
       <div className="card mb-4">
         <div className="card-body">
-          <h4>{course.title}</h4>
-          <p className="text-muted">{course.description}</p>
+          <h4>{getLangText(course.title)}</h4>
+          <p className="text-muted">{getLangText(course.description)}</p>
 
           <div className="d-flex gap-3 mb-3">
             <span className="badge bg-primary">

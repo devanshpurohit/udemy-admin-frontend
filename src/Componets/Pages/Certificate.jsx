@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { getCertificates, generateCertificate, deleteCertificate, updateCertificate, revokeCertificate } from "../../services/certificateService";
 import { getStudents } from "../../services/studentService";
 import { getCourseList } from "../../services/courseService";
+import { getLangText } from "../../utils/languageUtils";
 
 // Add cache-busting timestamp
 const CACHE_BUSTER = new Date().getTime();
@@ -499,7 +500,7 @@ function Certificate() {
                                                             <span className="badge bg-info text-white">{certificate.certificateId}</span>
                                                         </td>
                                                         <td>
-                                                            <span className="badge bg-primary text-white">{certificate.courseTitle}</span>
+                                                            <span className="badge bg-primary text-white">{getLangText(certificate.courseTitle)}</span>
                                                         </td>
                                                         <td>{certificate.studentName || 'N/A'}</td>
                                                         <td>
@@ -611,7 +612,7 @@ function Certificate() {
                                                 <option value="">Select Course</option>
                                                 {courses.map(course => (
                                                     <option key={course._id} value={course._id}>
-                                                        {course.title}
+                                                        {getLangText(course.title)}
                                                     </option>
                                                 ))}
                                             </select>

@@ -7,8 +7,8 @@ function ForgotPassword() {
     return (
         <>
             <section className="admin-login-section">
-                <div className="container-fluid ">
-                    <div className="row">
+                <div className="container-fluid px-0">
+                    <div className="row g-0">
                         <div className="col-lg-6 col-md-12 col-sm-12 px-0 mb-sm-3 mb-lg-0">
                             <div className="admin-picture-box">
                                 <img src={authImage} alt="forgot Password" />

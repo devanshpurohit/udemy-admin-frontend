@@ -10,6 +10,7 @@ import { NavLink } from "react-router-dom";
 import boyImg from '../../assets/images/boy.png';
 import { getStudents, deleteStudent } from "../../services/studentService";
 import { getCourseList } from "../../services/courseService";
+import { getLangText } from "../../utils/languageUtils";
 
 function StudentManagement() {
     const [students, setStudents] = useState([]);
@@ -153,7 +154,7 @@ function StudentManagement() {
         
         const titles = courses
             .filter(c => c.course && c.course.title)
-            .map(c => c.course.title);
+            .map(c => getLangText(c.course.title));
         
         if (titles.length === 0) return `${courses.length} Course${courses.length > 1 ? 's' : ''}`;
         
@@ -180,13 +181,7 @@ function StudentManagement() {
 
     // Check certificate status
     const getCertificateStatus = (student) => {
-        if (student.studentDetails?.enrolledCourses && student.studentDetails.enrolledCourses.length > 0) {
-            const course = student.studentDetails.enrolledCourses[0];
-            if (course.certificate?.issued) {
-                return 'Downloaded';
-            }
-        }
-        return 'Not Available';
+        return student.certificateCount || 0;
     };
 
     // Effects
@@ -293,7 +288,7 @@ function StudentManagement() {
       >
         <option value="All">All Courses</option>
         {courseList.map(course => (
-            <option key={course._id} value={course._id}>{course.title}</option>
+            <option key={course._id} value={course._id}>{getLangText(course.title)}</option>
         ))}
       </select>
 
