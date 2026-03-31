@@ -129,8 +129,25 @@ function StudentProfile() {
      };
 
     // Handle student status toggle
-  
-
+    const handleToggleStatus = async () => {
+        try {
+            const newStatus = !student.isActive;
+            const action = newStatus ? 'Unblock' : 'Block';
+            
+            if (window.confirm(`Are you sure you want to ${action} this student?`)) {
+                const response = await updateStudentStatus(id, newStatus);
+                if (response.success) {
+                    toast.success(`Student ${action.toLowerCase()}ed successfully`);
+                    fetchStudentData(); // Refresh data to get updated status
+                } else {
+                    toast.error(response.message || `Failed to ${action.toLowerCase()} student`);
+                }
+            }
+        } catch (err) {
+            console.error('Toggle status error:', err);
+            toast.error('Error updating student status');
+        }
+    };
     // Format date
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -279,13 +296,22 @@ function StudentProfile() {
                             <div className="student-profile-content">
                                  <h5>{getStudentName()}</h5>
                                  <p className="mb-2">{student?.email || 'N/A'}</p>
-                                 <button 
-                                     className="btn btn-sm btn-primary px-3 rounded-pill"
-                                     onClick={handleEditClick}
-                                     style={{ backgroundColor: '#0056b3', border: 'none' }}
-                                 >
-                                     Edit Profile
-                                 </button>
+                                 <div className="d-flex justify-content-center gap-2">
+                                     <button 
+                                         className="btn btn-sm btn-primary px-3 rounded-pill"
+                                         onClick={handleEditClick}
+                                         style={{ backgroundColor: '#0056b3', border: 'none' }}
+                                     >
+                                         Edit Profile
+                                     </button>
+                                     <button 
+                                         className={`btn btn-sm px-3 rounded-pill ${student?.isActive ? 'btn-danger' : 'btn-success'}`}
+                                         onClick={handleToggleStatus}
+                                         style={{ border: 'none' }}
+                                     >
+                                         {student?.isActive ? 'Block Student' : 'Unblock Student'}
+                                     </button>
+                                 </div>
                              </div>
 
                             <div className="student-bio-data">

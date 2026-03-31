@@ -94,6 +94,15 @@ function LeftSidebar() {
                             </li>
 
                             <li className="nav-item">
+                                <NavLink to="/unblock-requests" className={({ isActive }) =>
+                                    `nav-link ${isActive ? "active-nav" : ""}`
+                                }>
+                                    <FontAwesomeIcon icon={faUser} className="fa-lg" />
+                                    Unblock Requests
+                                </NavLink>
+                            </li>
+
+                            <li className="nav-item">
                                 <NavLink to="/coupon" className={({ isActive }) =>
                                     `nav-link ${isActive ? "active-nav" : ""}`
                                 }>

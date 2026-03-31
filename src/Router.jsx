@@ -32,6 +32,7 @@ import ForgotPassword from './Componets/Auth/ForgotPassword';
 import Otp from './Componets/Auth/Otp';
 import SetPassword from './Componets/Auth/SetPassword';
 import LoginPermissions from './Componets/Pages/LoginPermissions';
+import UnblockRequests from './Componets/Pages/UnblockRequests';
 
 const router = createBrowserRouter([
   {
@@ -170,6 +171,10 @@ const router = createBrowserRouter([
       {
         path: "/login-permissions",
         element: <LoginPermissions />,
+      },
+      {
+        path: "/unblock-requests",
+        element: <UnblockRequests />,
       },
     ],
   },

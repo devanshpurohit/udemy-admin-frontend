@@ -230,7 +230,7 @@ const FeedbackManagement = () => {
                                     ) : (
                                         <div className="d-flex align-items-center gap-3">
                                             <img 
-                                                src={item.userImage || "/boy.png"} 
+                                                src={item.userImage && !item.userImage.includes('boy.png') ? (item.userImage.startsWith('http') ? item.userImage : `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5002'}${item.userImage.startsWith('/') ? '' : '/'}${item.userImage}`) : "/boy.png"} 
                                                 alt={item.name} 
                                                 className="rounded-circle" 
                                                 style={{ width: '40px', height: '40px', objectFit: 'cover' }} 
